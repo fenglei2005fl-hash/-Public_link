@@ -1,0 +1,993 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>最近30日各游戏拉新首单分析报告</title>
+<script src="echarts.min.js"></script>
+<style>
+:root{
+  --bg:#f0f2f5;--card:#fff;--border:#e5e7eb;--text:#111827;--muted:#6b7280;
+  --red:#ef4444;--red-bg:#fef2f2;--green:#10b981;--green-bg:#ecfdf5;
+  --orange:#f97316;--orange-bg:#fff7ed;--blue:#3b82f6;--blue-bg:#eff6ff;
+  --font:'PingFang SC','Noto Sans SC','Microsoft YaHei',sans-serif;
+  --mono:'JetBrains Mono','Fira Code',monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);font-family:var(--font);color:var(--text);padding:24px}
+
+.page-header{
+  background:linear-gradient(135deg,#1e3a5f,#2d6089);
+  border-radius:16px;padding:32px 36px;margin-bottom:24px;color:#fff;
+}
+.page-header h1{font-size:1.55rem;font-weight:700;margin-bottom:6px}
+.page-header .sub{font-size:.85rem;opacity:.75;line-height:1.8}
+.badge-row{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
+.badge{padding:4px 12px;border-radius:999px;font-size:.75rem;font-weight:600;
+       border:1px solid rgba(255,255,255,.3);color:#fff;background:rgba(255,255,255,.12)}
+
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:14px;margin-bottom:24px}
+.kpi-card{background:var(--card);border:1px solid var(--border);border-radius:12px;
+          padding:18px;position:relative;overflow:hidden}
+.kpi-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--kc,#3b82f6)}
+.kpi-label{font-size:.75rem;color:var(--muted);margin-bottom:6px}
+.kpi-value{font-size:1.5rem;font-weight:700;line-height:1;margin-bottom:4px}
+.kpi-delta{font-size:.8rem;font-weight:600}
+.d-neg{color:var(--red)} .d-pos{color:var(--green)}
+
+.section{background:var(--card);border:1px solid var(--border);border-radius:12px;
+         padding:24px;margin-bottom:24px}
+.sec-title{font-size:1rem;font-weight:700;margin-bottom:16px;
+           display:flex;align-items:center;gap:8px}
+
+.policy-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px}
+.pc{border-radius:10px;padding:16px;border:1px solid}
+.pc.neg{background:var(--red-bg);border-color:#fca5a5}
+.pc.pos{background:var(--green-bg);border-color:#6ee7b7}
+.pc-date{font-size:.72rem;font-family:var(--mono);font-weight:600;margin-bottom:5px}
+.pc.neg .pc-date{color:var(--red)} .pc.pos .pc-date{color:var(--green)}
+.pc-title{font-size:.92rem;font-weight:700;color:var(--text);margin-bottom:4px}
+.pc-site{display:inline-block;padding:2px 8px;border-radius:4px;font-size:.75rem;
+         font-weight:600;margin-bottom:8px}
+.pc.neg .pc-site{background:rgba(239,68,68,.12);color:var(--red)}
+.pc.pos .pc-site{background:rgba(16,185,129,.12);color:var(--green)}
+.pc-body{font-size:.82rem;color:#374151;line-height:1.65}
+.pc-impact{font-size:.78rem;font-weight:600;margin-top:8px;padding:4px 8px;border-radius:4px}
+.pc.neg .pc-impact{background:rgba(239,68,68,.08);color:var(--red)}
+.pc.pos .pc-impact{background:rgba(16,185,129,.08);color:var(--green)}
+
+.sum-table{width:100%;border-collapse:collapse;font-size:.85rem}
+.sum-table th{background:#f8fafc;color:var(--muted);font-size:.78rem;font-weight:600;
+              padding:10px 14px;text-align:left;border-bottom:2px solid var(--border)}
+.sum-table td{padding:10px 14px;border-bottom:1px solid #f3f4f6;vertical-align:middle}
+.sum-table tr:hover td{background:#fafafa}
+.note-box{background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:12px 16px;
+          font-size:.82rem;color:#92400e;margin-top:14px;line-height:1.7}
+
+/* ── per-game blocks ── */
+.game-block{background:var(--card);border:1px solid var(--border);border-radius:12px;
+            padding:24px;margin-bottom:20px}
+.game-header{display:flex;justify-content:space-between;align-items:flex-start;
+             margin-bottom:16px;flex-wrap:wrap;gap:10px}
+.game-title-wrap{display:flex;align-items:flex-start;gap:12px}
+.game-icon{font-size:1.5rem;flex-shrink:0}
+.game-title{font-size:1.05rem;font-weight:700;color:var(--text)}
+.game-meta{font-size:.75rem;color:var(--muted);margin-top:3px;font-family:var(--mono)}
+.game-chg{font-size:1.4rem;font-weight:700;text-align:right;line-height:1.2}
+.game-chg-sub{font-size:.75rem;color:var(--muted);font-weight:400;margin-top:4px}
+.chart-box{height:280px;width:100%;margin-bottom:14px}
+.game-analysis{background:#f8fafc;border-left:3px solid #3b82f6;border-radius:0 8px 8px 0;
+               padding:12px 16px;font-size:.83rem;color:#374151;line-height:1.75}
+
+.total-chart{height:340px;width:100%}
+footer{text-align:center;padding:20px;color:var(--muted);font-size:.75rem;
+       border-top:1px solid var(--border);margin-top:8px}
+</style>
+</head>
+<body>
+
+<div class="page-header">
+  <h1>最近30日各游戏拉新首单分析报告</h1>
+  <div class="sub">
+    数据范围：2026-05-02 ~ 2026-05-31 &nbsp;|&nbsp;
+    对比口径：<b>前一周</b>（05/20~05/26）vs 变更后（05/27~05/31）&nbsp;|&nbsp;
+    策略变更节点：<b>2026-05-27</b>
+  </div>
+  <div class="badge-row">
+    <span class="badge">📊 核心游戏：9个（前一周日均 &gt; 50）</span>
+    <span class="badge">⚠️ 策略变更：2026-05-27</span>
+    <span class="badge">前一周 7天 vs 变更后 5天</span>
+  </div>
+</div>
+
+<div class="kpi-grid" id="kpi-grid"></div>
+
+<div class="section">
+  <div class="sec-title">📋 业务策略变更日志（2026-05-27）</div>
+  <div class="policy-grid">
+    <div class="pc neg">
+      <div class="pc-date">2026-05-27</div>
+      <div class="pc-title">US站点分控拦截策略上线</div>
+      <div class="pc-site">🇺🇸 US 站点</div>
+      <div class="pc-body">因复购率下降，在分控上增加拦截策略，限制部分用户参与裂变游戏并完成首单。</div>
+      <div class="pc-impact">📉 预计影响首单数 30%~40%</div>
+    </div>
+    <div class="pc pos">
+      <div class="pc-date">2026-05-27</div>
+      <div class="pc-title">翻牌3.0 上线 Naver 本地化权益</div>
+      <div class="pc-site">🇰🇷 KR 站点</div>
+      <div class="pc-body">通过本地化权益提升裂变规模，韩国站点翻牌3.0接入Naver权益，针对本土用户偏好定制奖励。</div>
+      <div class="pc-impact">📈 预计带动首单规模增长</div>
+    </div>
+    <div class="pc pos">
+      <div class="pc-date">2026-05-27</div>
+      <div class="pc-title">翻牌4.0 上线 PayPay 可选机制</div>
+      <div class="pc-site">🇯🇵 JP 站点</div>
+      <div class="pc-body">日本站点翻牌4.0上线PayPay奖励可选机制，用户可自选奖励类型，返现补贴拉升转化率。</div>
+      <div class="pc-impact">📈 促进首单规模增长</div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <div class="sec-title">📈 全游戏每日拉新首单总量（含变更节点）</div>
+  <div class="total-chart" id="chart-total"></div>
+</div>
+
+<div class="section">
+  <div class="sec-title">📊 核心游戏策略前后对比汇总</div>
+  <table class="sum-table">
+    <thead>
+      <tr>
+        <th>游戏名称</th>
+        <th>类型ID</th>
+        <th>前一周日均（05/20~26）</th>
+        <th>变更后日均（05/27~31）</th>
+        <th>变化幅度</th>
+      </tr>
+    </thead>
+    <tbody><tr><td><b>拉新返佣</b></td><td style="font-family:monospace;color:#9ca3af;font-size:.78rem">205</td><td>2,660.6</td><td>1,973.8</td><td style="color:#dc2626;font-weight:700">↓ -25.8%</td></tr>
+<tr><td><b>翻牌4.0</b></td><td style="font-family:monospace;color:#9ca3af;font-size:.78rem">104</td><td>1,542.4</td><td>1,108.8</td><td style="color:#dc2626;font-weight:700">↓ -28.1%</td></tr>
+<tr><td><b>FREE ITEM - 砍一刀</b></td><td style="font-family:monospace;color:#9ca3af;font-size:.78rem">28</td><td>774.0</td><td>647.6</td><td style="color:#f97316;font-weight:700">↓ -16.3%</td></tr>
+<tr><td><b>摇钱树</b></td><td style="font-family:monospace;color:#9ca3af;font-size:.78rem">90</td><td>650.3</td><td>553.2</td><td style="color:#f97316;font-weight:700">↓ -14.9%</td></tr>
+<tr><td><b>新养成游戏（进度）</b></td><td style="font-family:monospace;color:#9ca3af;font-size:.78rem">89</td><td>196.0</td><td>179.6</td><td style="color:#f97316;font-weight:700">↓ -8.4%</td></tr>
+<tr><td><b>JACKPOT QUEST</b></td><td style="font-family:monospace;color:#9ca3af;font-size:.78rem">101</td><td>145.0</td><td>112.8</td><td style="color:#dc2626;font-weight:700">↓ -22.2%</td></tr>
+<tr><td><b>FI小团极简</b></td><td style="font-family:monospace;color:#9ca3af;font-size:.78rem">102</td><td>92.6</td><td>94.4</td><td style="color:#059669;font-weight:700">↑ +1.9%</td></tr>
+<tr><td><b>摇钱树阶段发奖版</b></td><td style="font-family:monospace;color:#9ca3af;font-size:.78rem">103</td><td>86.3</td><td>84.4</td><td style="color:#6b7280;font-weight:700">↓ -2.2%</td></tr>
+<tr><td><b>GROUPBUY</b></td><td style="font-family:monospace;color:#9ca3af;font-size:.78rem">GROUPBUY</td><td>55.6</td><td>72.6</td><td style="color:#059669;font-weight:700">↑ +30.6%</td></tr></tbody>
+  </table>
+  <div class="note-box">
+    ⚠️ <b>对比口径说明</b>：本报告以 05/20~05/26（策略变更前一周，7天）作为基准期，
+    对比 05/27~05/31（变更后5天）的均值。注意变更后观察窗口仅5天，统计结论存在一定随机性，
+    建议持续观测至6月中旬（至少10个工作日）后再做最终判断。
+    翻牌4.0 因5月上旬处于爬坡期，前一周均值（1542）显著高于全月均值（962），
+    以前一周为基准更能准确反映策略变更后的实际影响。
+  </div>
+</div>
+
+<div class="section">
+  <div class="sec-title">🔍 核心游戏逐日趋势与分析（9个，前一周日均 &gt; 50）</div>
+  <div style="font-size:.82rem;color:var(--muted);margin-bottom:20px;line-height:1.7">
+    每图包含：<span style="color:#ef4444">■</span> 策略变更节点（05/27红色虚线）&nbsp;·&nbsp;
+    <span style="color:#3b82f6">■</span> 前一周均值参考线（蓝色虚线）&nbsp;·&nbsp;
+    <span style="color:#f97316">■</span> 变更后均值参考线（橙色虚线）
+  </div>
+
+<div class="game-block">
+  <div class="game-header">
+    <div class="game-title-wrap">
+      <span class="game-icon">📉</span>
+      <div>
+        <div class="game-title">拉新返佣</div>
+        <div class="game-meta">game_type: 205 &nbsp;·&nbsp; 前一周日均：2660.6</div>
+      </div>
+    </div>
+    <div class="game-chg" style="color:#dc2626">-25.8%
+      <div class="game-chg-sub">2660.6 → 1973.8</div>
+    </div>
+  </div>
+  <div class="chart-box" id="chart_0"></div>
+  <div class="game-analysis">变更前一周日均 2660.6，变更后日均 1973.8，下降 687（-25.8%）。作为规模最大的拉新游戏，US站点分控拦截策略对其影响最为显著。建议拆分US与非US站点数据进行归因，评估分控策略的实际波及范围。</div>
+</div>
+
+<div class="game-block">
+  <div class="game-header">
+    <div class="game-title-wrap">
+      <span class="game-icon">📉</span>
+      <div>
+        <div class="game-title">翻牌4.0</div>
+        <div class="game-meta">game_type: 104 &nbsp;·&nbsp; 前一周日均：1542.4</div>
+      </div>
+    </div>
+    <div class="game-chg" style="color:#dc2626">-28.1%
+      <div class="game-chg-sub">1542.4 → 1108.8</div>
+    </div>
+  </div>
+  <div class="chart-box" id="chart_1"></div>
+  <div class="game-analysis">变更前一周日均 1542.4（处于月内高位），变更后日均 1108.8，下降 434（-28.1%）。5月上旬该游戏处于爬坡期，前一周口径才能反映真实基准。JP站点PayPay可选机制虽同日上线，但5天观察窗口内未能抵消US分控影响，需持续跟踪JP站点增量。</div>
+</div>
+
+<div class="game-block">
+  <div class="game-header">
+    <div class="game-title-wrap">
+      <span class="game-icon">📉</span>
+      <div>
+        <div class="game-title">FREE ITEM - 砍一刀</div>
+        <div class="game-meta">game_type: 28 &nbsp;·&nbsp; 前一周日均：774.0</div>
+      </div>
+    </div>
+    <div class="game-chg" style="color:#f97316">-16.3%
+      <div class="game-chg-sub">774.0 → 647.6</div>
+    </div>
+  </div>
+  <div class="chart-box" id="chart_2"></div>
+  <div class="game-analysis">变更前一周日均 774.0，变更后日均 647.6，下降 126（-16.3%）。受US分控拦截策略影响，首单量中等程度下滑。该游戏历史体量稳定，当前降幅在预期范围内（预估影响30~40%，全量影响约16%）。</div>
+</div>
+
+<div class="game-block">
+  <div class="game-header">
+    <div class="game-title-wrap">
+      <span class="game-icon">⚠️</span>
+      <div>
+        <div class="game-title">摇钱树</div>
+        <div class="game-meta">game_type: 90 &nbsp;·&nbsp; 前一周日均：650.3</div>
+      </div>
+    </div>
+    <div class="game-chg" style="color:#f97316">-14.9%
+      <div class="game-chg-sub">650.3 → 553.2</div>
+    </div>
+  </div>
+  <div class="chart-box" id="chart_3"></div>
+  <div class="game-analysis">变更前一周日均 650.3，变更后日均 553.2，下降 97（-14.9%）。降幅相对温和，推测该游戏US占比低于拉新返佣等游戏，或有效用户质量更高不在拦截范围内。短期可作为US分控影响的对照参考。</div>
+</div>
+
+<div class="game-block">
+  <div class="game-header">
+    <div class="game-title-wrap">
+      <span class="game-icon">⚠️</span>
+      <div>
+        <div class="game-title">新养成游戏（进度）</div>
+        <div class="game-meta">game_type: 89 &nbsp;·&nbsp; 前一周日均：196.0</div>
+      </div>
+    </div>
+    <div class="game-chg" style="color:#f97316">-8.4%
+      <div class="game-chg-sub">196.0 → 179.6</div>
+    </div>
+  </div>
+  <div class="chart-box" id="chart_4"></div>
+  <div class="game-analysis">变更前一周日均 196.0，变更后日均 179.6，下降 16（-8.4%）。降幅仅 8.4%，是受影响最小的核心游戏之一，具备一定的站点分布多元化特征。可进一步分析其非US站点贡献占比，评估抗风险能力。</div>
+</div>
+
+<div class="game-block">
+  <div class="game-header">
+    <div class="game-title-wrap">
+      <span class="game-icon">📉</span>
+      <div>
+        <div class="game-title">JACKPOT QUEST</div>
+        <div class="game-meta">game_type: 101 &nbsp;·&nbsp; 前一周日均：145.0</div>
+      </div>
+    </div>
+    <div class="game-chg" style="color:#dc2626">-22.2%
+      <div class="game-chg-sub">145.0 → 112.8</div>
+    </div>
+  </div>
+  <div class="chart-box" id="chart_5"></div>
+  <div class="game-analysis">变更前一周日均 145.0，变更后日均 112.8，下降 32（-22.2%）。降幅 22.2%，与整体趋势一致。该游戏名称为英文，用户群体可能以US/CA等英语市场为主，因此US分控影响较为集中。</div>
+</div>
+
+<div class="game-block">
+  <div class="game-header">
+    <div class="game-title-wrap">
+      <span class="game-icon">📈</span>
+      <div>
+        <div class="game-title">FI小团极简</div>
+        <div class="game-meta">game_type: 102 &nbsp;·&nbsp; 前一周日均：92.6</div>
+      </div>
+    </div>
+    <div class="game-chg" style="color:#059669">+1.9%
+      <div class="game-chg-sub">92.6 → 94.4</div>
+    </div>
+  </div>
+  <div class="chart-box" id="chart_6"></div>
+  <div class="game-analysis">变更前一周日均 92.6，变更后日均 94.4，变化 +1.9%，基本持平。是9个核心游戏中受影响最小的游戏，推测与其主要运营的站点分布有关（非US为主）。可作为基准对比游戏，辅助判断US分控策略的实际影响边界。</div>
+</div>
+
+<div class="game-block">
+  <div class="game-header">
+    <div class="game-title-wrap">
+      <span class="game-icon">⚠️</span>
+      <div>
+        <div class="game-title">摇钱树阶段发奖版</div>
+        <div class="game-meta">game_type: 103 &nbsp;·&nbsp; 前一周日均：86.3</div>
+      </div>
+    </div>
+    <div class="game-chg" style="color:#f97316">-2.2%
+      <div class="game-chg-sub">86.3 → 84.4</div>
+    </div>
+  </div>
+  <div class="chart-box" id="chart_7"></div>
+  <div class="game-analysis">变更前一周日均 86.3，变更后日均 84.4，变化 -2.2%，基本持平。与FI小团极简类似，受分控影响极小，整体首单量稳定。短期无需特别关注，建议结合6月数据观察其长期走势。</div>
+</div>
+
+<div class="game-block">
+  <div class="game-header">
+    <div class="game-title-wrap">
+      <span class="game-icon">📈</span>
+      <div>
+        <div class="game-title">GROUPBUY</div>
+        <div class="game-meta">game_type: GROUPBUY &nbsp;·&nbsp; 前一周日均：55.6</div>
+      </div>
+    </div>
+    <div class="game-chg" style="color:#059669">+30.6%
+      <div class="game-chg-sub">55.6 → 72.6</div>
+    </div>
+  </div>
+  <div class="chart-box" id="chart_8"></div>
+  <div class="game-analysis">变更前一周日均 55.6，变更后日均 72.6，增加 17（+30.6%）。是9个核心游戏中唯一实现明显增长的游戏，增长可能来自KR站点Naver本地化权益的拉动效果。绝对量仍相对较小，建议密切关注后续5-10天的持续性，排除短期脉冲可能。</div>
+</div>
+</div>
+
+<footer>报告生成时间：2026-06-01 &nbsp;·&nbsp; 数据来源：最近30日各游戏拉新首单数.xlsx &nbsp;·&nbsp; 裂变拉新业务线</footer>
+
+<script>
+var D = {"fmt_dates": ["05/02", "05/03", "05/04", "05/05", "05/06", "05/07", "05/08", "05/09", "05/10", "05/11", "05/12", "05/13", "05/14", "05/15", "05/16", "05/17", "05/18", "05/19", "05/20", "05/21", "05/22", "05/23", "05/24", "05/25", "05/26", "05/27", "05/28", "05/29", "05/30", "05/31"], "change_idx": 25, "daily_total": [5127, 5330, 5060, 4808, 5309, 4885, 5051, 5018, 4942, 4442, 5572, 6034, 6286, 6355, 6272, 6170, 6089, 5679, 5870, 6197, 6423, 6298, 6249, 6316, 6372, 5356, 4706, 4755, 4732, 4816], "pre7_avg_tot": 6246.4, "post_avg_tot": 4873.0, "total_chg": -22.0, "core": [{"gt": "205", "name": "拉新返佣", "pre_avg": 2660.6, "post_avg": 1973.8, "chg": -25.8, "series": [2610, 2650, 2297, 2053, 2116, 2176, 2348, 2234, 2207, 1883, 2523, 2718, 2706, 2773, 2727, 2808, 2476, 2236, 2370, 2528, 2709, 2769, 2789, 2681, 2778, 2228, 1840, 1924, 1859, 2018], "analysis": "变更前一周日均 2660.6，变更后日均 1973.8，下降 687（-25.8%）。作为规模最大的拉新游戏，US站点分控拦截策略对其影响最为显著。建议拆分US与非US站点数据进行归因，评估分控策略的实际波及范围。"}, {"gt": "104", "name": "翻牌4.0", "pre_avg": 1542.4, "post_avg": 1108.8, "chg": -28.1, "series": [231, 400, 345, 309, 374, 293, 388, 474, 653, 567, 664, 943, 1208, 1259, 1334, 1131, 1411, 1278, 1410, 1611, 1682, 1544, 1470, 1511, 1569, 1337, 1061, 1094, 1068, 984], "analysis": "变更前一周日均 1542.4（处于月内高位），变更后日均 1108.8，下降 434（-28.1%）。5月上旬该游戏处于爬坡期，前一周口径才能反映真实基准。JP站点PayPay可选机制虽同日上线，但5天观察窗口内未能抵消US分控影响，需持续跟踪JP站点增量。"}, {"gt": "28", "name": "FREE ITEM - 砍一刀", "pre_avg": 774.0, "post_avg": 647.6, "chg": -16.3, "series": [793, 803, 827, 875, 1168, 844, 795, 787, 688, 585, 822, 871, 874, 859, 854, 769, 776, 746, 775, 730, 733, 776, 750, 817, 837, 655, 625, 617, 670, 671], "analysis": "变更前一周日均 774.0，变更后日均 647.6，下降 126（-16.3%）。受US分控拦截策略影响，首单量中等程度下滑。该游戏历史体量稳定，当前降幅在预期范围内（预估影响30~40%，全量影响约16%）。"}, {"gt": "90", "name": "摇钱树", "pre_avg": 650.3, "post_avg": 553.2, "chg": -14.9, "series": [762, 694, 780, 823, 872, 847, 813, 752, 675, 702, 714, 746, 691, 715, 667, 680, 672, 646, 604, 654, 698, 633, 627, 708, 628, 575, 565, 543, 553, 530], "analysis": "变更前一周日均 650.3，变更后日均 553.2，下降 97（-14.9%）。降幅相对温和，推测该游戏US占比低于拉新返佣等游戏，或有效用户质量更高不在拦截范围内。短期可作为US分控影响的对照参考。"}, {"gt": "89", "name": "新养成游戏（进度）", "pre_avg": 196.0, "post_avg": 179.6, "chg": -8.4, "series": [245, 273, 253, 220, 215, 263, 244, 219, 200, 212, 207, 265, 208, 223, 225, 253, 208, 203, 225, 232, 204, 189, 179, 168, 175, 182, 184, 191, 157, 184], "analysis": "变更前一周日均 196.0，变更后日均 179.6，下降 16（-8.4%）。降幅仅 8.4%，是受影响最小的核心游戏之一，具备一定的站点分布多元化特征。可进一步分析其非US站点贡献占比，评估抗风险能力。"}, {"gt": "101", "name": "JACKPOT QUEST", "pre_avg": 145.0, "post_avg": 112.8, "chg": -22.2, "series": [175, 165, 205, 183, 184, 176, 200, 233, 202, 168, 252, 204, 285, 202, 203, 201, 220, 306, 222, 180, 129, 108, 150, 123, 103, 120, 122, 105, 122, 95], "analysis": "变更前一周日均 145.0，变更后日均 112.8，下降 32（-22.2%）。降幅 22.2%，与整体趋势一致。该游戏名称为英文，用户群体可能以US/CA等英语市场为主，因此US分控影响较为集中。"}, {"gt": "102", "name": "FI小团极简", "pre_avg": 92.6, "post_avg": 94.4, "chg": 1.9, "series": [132, 178, 178, 183, 216, 122, 117, 138, 170, 164, 213, 131, 131, 128, 114, 149, 142, 109, 109, 96, 96, 96, 87, 89, 75, 71, 81, 79, 97, 144], "analysis": "变更前一周日均 92.6，变更后日均 94.4，变化 +1.9%，基本持平。是9个核心游戏中受影响最小的游戏，推测与其主要运营的站点分布有关（非US为主）。可作为基准对比游戏，辅助判断US分控策略的实际影响边界。"}, {"gt": "103", "name": "摇钱树阶段发奖版", "pre_avg": 86.3, "post_avg": 84.4, "chg": -2.2, "series": [107, 90, 97, 88, 92, 71, 82, 94, 74, 78, 92, 72, 83, 92, 86, 88, 87, 79, 83, 82, 76, 100, 77, 103, 83, 86, 94, 96, 82, 64], "analysis": "变更前一周日均 86.3，变更后日均 84.4，变化 -2.2%，基本持平。与FI小团极简类似，受分控影响极小，整体首单量稳定。短期无需特别关注，建议结合6月数据观察其长期走势。"}, {"gt": "GROUPBUY", "name": "GROUPBUY", "pre_avg": 55.6, "post_avg": 72.6, "chg": 30.6, "series": [10, 19, 19, 14, 15, 23, 13, 21, 23, 27, 24, 33, 26, 33, 19, 26, 35, 27, 25, 34, 49, 51, 62, 80, 88, 61, 87, 61, 71, 83], "analysis": "变更前一周日均 55.6，变更后日均 72.6，增加 17（+30.6%）。是9个核心游戏中唯一实现明显增长的游戏，增长可能来自KR站点Naver本地化权益的拉动效果。绝对量仍相对较小，建议密切关注后续5-10天的持续性，排除短期脉冲可能。"}], "pre7_label": "05/20~05/26（前一周）", "post_label": "05/27~05/31（变更后）"};
+
+// ── KPI Cards ──
+var kpis = [
+  {label:'全游戏变更前一周日均', value: D.pre7_avg_tot.toLocaleString(), delta:'', color:'#3b82f6'},
+  {label:'全游戏变更后日均', value: D.post_avg_tot.toLocaleString(),
+   delta:(D.total_chg>0?'+':'')+D.total_chg+'%', pos:D.total_chg>0,
+   color:D.total_chg>=0?'#10b981':'#ef4444'},
+  {label:'核心游戏数（日均>50）', value: D.core.length, delta:'', color:'#8b5cf6'},
+  {label:'下滑超20%游戏数', value: D.core.filter(function(g){return g.chg<=-20}).length,
+   delta:'需重点关注', pos:false, color:'#ef4444'},
+  {label:'正增长或持平游戏', value: D.core.filter(function(g){return g.chg>-5}).length,
+   delta:'相对稳健', pos:true, color:'#10b981'},
+];
+var kpiEl = document.getElementById('kpi-grid');
+kpis.forEach(function(k){
+  kpiEl.innerHTML += '<div class="kpi-card" style="--kc:'+k.color+'">'
+    +'<div class="kpi-label">'+k.label+'</div>'
+    +'<div class="kpi-value">'+k.value+'</div>'
+    +(k.delta ? '<div class="kpi-delta '+(k.pos?'d-pos':'d-neg')+'">'+k.delta+'</div>' : '')
+    +'</div>';
+});
+
+window.addEventListener('load', function(){
+
+  // ── Total Trend ──
+  var tc = echarts.init(document.getElementById('chart-total'));
+  tc.setOption({
+    backgroundColor:'transparent',
+    tooltip:{trigger:'axis', formatter:function(p){
+      return p[0].name+'<br/>总首单: <b>'+p[0].value.toLocaleString()+'</b>';
+    }},
+    grid:{top:50,bottom:60,left:70,right:30},
+    xAxis:{type:'category',data:D.fmt_dates,
+      axisLabel:{rotate:45,fontSize:11},
+      axisLine:{lineStyle:{color:'#d1d5db'}},axisTick:{show:false}},
+    yAxis:{type:'value',
+      axisLabel:{formatter:function(v){return v>=1000?(v/1000).toFixed(1)+'k':v}},
+      splitLine:{lineStyle:{color:'#f3f4f6'}}},
+    series:[{
+      type:'line',data:D.daily_total,smooth:true,symbol:'none',
+      lineStyle:{width:2.5,color:'#3b82f6'},
+      areaStyle:{color:{type:'linear',x:0,y:0,x2:0,y2:1,
+        colorStops:[{offset:0,color:'rgba(59,130,246,0.2)'},{offset:1,color:'rgba(59,130,246,0)'}]}},
+      markLine:{silent:true,symbol:['none','none'],
+        data:[{xAxis:D.change_idx,
+          lineStyle:{color:'#ef4444',width:2,type:'dashed'},
+          label:{formatter:'策略变更\n05/27',color:'#ef4444',fontSize:11,fontWeight:'bold',
+                 position:'insideStartTop'}}]}
+    }]
+  });
+  window.addEventListener('resize',function(){tc.resize()});
+
+  // ── Per-game charts ──
+
+(function(){
+  var dom = document.getElementById('chart_0');
+  if (!dom) return;
+  var chart = echarts.init(dom);
+  chart.setOption({
+    backgroundColor: 'transparent',
+    tooltip: {
+      trigger: 'axis',
+      formatter: function(p){
+        return p[0].name + '<br/><b>' + p[0].value.toLocaleString() + '</b> 首单';
+      }
+    },
+    grid: { top:50, bottom:50, left:64, right:30 },
+    xAxis: {
+      type: 'category',
+      data: D.fmt_dates,
+      axisLabel: { fontSize:11, interval:1, rotate:45 },
+      axisLine: { lineStyle: { color:'#d1d5db' } },
+      axisTick: { show:false }
+    },
+    yAxis: {
+      type: 'value',
+      axisLabel: { fontSize:11 },
+      splitLine: { lineStyle: { color:'#f3f4f6' } }
+    },
+    series: [
+      {
+        type: 'line',
+        data: [2610, 2650, 2297, 2053, 2116, 2176, 2348, 2234, 2207, 1883, 2523, 2718, 2706, 2773, 2727, 2808, 2476, 2236, 2370, 2528, 2709, 2769, 2789, 2681, 2778, 2228, 1840, 1924, 1859, 2018],
+        smooth: true,
+        symbol: 'circle',
+        symbolSize: 4,
+        lineStyle: { width:2.5, color:'#ef4444' },
+        itemStyle: { color:'#ef4444' },
+        areaStyle: { color: { type:'linear',x:0,y:0,x2:0,y2:1,
+          colorStops:[{offset:0,color:'#ef444433'},{offset:1,color:'#ef444400'}] } },
+        markLine: {
+          silent: true,
+          symbol: ['none','none'],
+          data: [
+            {
+              xAxis: D.change_idx,
+              lineStyle: { color:'#ef4444', width:2, type:'dashed' },
+              label: { formatter:'策略变更\n05/27', position:'insideStartTop',
+                        color:'#ef4444', fontSize:11, fontWeight:'bold' }
+            },
+            {
+              yAxis: 2660.6,
+              lineStyle: { color:'#3b82f6', width:1.5, type:'dashed' },
+              label: { formatter:'前一周均值 2660.6', position:'insideEndBottom',
+                        color:'#3b82f6', fontSize:10 }
+            },
+            {
+              yAxis: 1973.8,
+              lineStyle: { color:'#f97316', width:1.5, type:'dashed' },
+              label: { formatter:'变更后均值 1973.8', position:'insideEndTop',
+                        color:'#f97316', fontSize:10 }
+            }
+          ]
+        }
+      }
+    ]
+  });
+  window.addEventListener('resize', function(){ chart.resize(); });
+})();
+
+
+(function(){
+  var dom = document.getElementById('chart_1');
+  if (!dom) return;
+  var chart = echarts.init(dom);
+  chart.setOption({
+    backgroundColor: 'transparent',
+    tooltip: {
+      trigger: 'axis',
+      formatter: function(p){
+        return p[0].name + '<br/><b>' + p[0].value.toLocaleString() + '</b> 首单';
+      }
+    },
+    grid: { top:50, bottom:50, left:64, right:30 },
+    xAxis: {
+      type: 'category',
+      data: D.fmt_dates,
+      axisLabel: { fontSize:11, interval:1, rotate:45 },
+      axisLine: { lineStyle: { color:'#d1d5db' } },
+      axisTick: { show:false }
+    },
+    yAxis: {
+      type: 'value',
+      axisLabel: { fontSize:11 },
+      splitLine: { lineStyle: { color:'#f3f4f6' } }
+    },
+    series: [
+      {
+        type: 'line',
+        data: [231, 400, 345, 309, 374, 293, 388, 474, 653, 567, 664, 943, 1208, 1259, 1334, 1131, 1411, 1278, 1410, 1611, 1682, 1544, 1470, 1511, 1569, 1337, 1061, 1094, 1068, 984],
+        smooth: true,
+        symbol: 'circle',
+        symbolSize: 4,
+        lineStyle: { width:2.5, color:'#ef4444' },
+        itemStyle: { color:'#ef4444' },
+        areaStyle: { color: { type:'linear',x:0,y:0,x2:0,y2:1,
+          colorStops:[{offset:0,color:'#ef444433'},{offset:1,color:'#ef444400'}] } },
+        markLine: {
+          silent: true,
+          symbol: ['none','none'],
+          data: [
+            {
+              xAxis: D.change_idx,
+              lineStyle: { color:'#ef4444', width:2, type:'dashed' },
+              label: { formatter:'策略变更\n05/27', position:'insideStartTop',
+                        color:'#ef4444', fontSize:11, fontWeight:'bold' }
+            },
+            {
+              yAxis: 1542.4,
+              lineStyle: { color:'#3b82f6', width:1.5, type:'dashed' },
+              label: { formatter:'前一周均值 1542.4', position:'insideEndBottom',
+                        color:'#3b82f6', fontSize:10 }
+            },
+            {
+              yAxis: 1108.8,
+              lineStyle: { color:'#f97316', width:1.5, type:'dashed' },
+              label: { formatter:'变更后均值 1108.8', position:'insideEndTop',
+                        color:'#f97316', fontSize:10 }
+            }
+          ]
+        }
+      }
+    ]
+  });
+  window.addEventListener('resize', function(){ chart.resize(); });
+})();
+
+
+(function(){
+  var dom = document.getElementById('chart_2');
+  if (!dom) return;
+  var chart = echarts.init(dom);
+  chart.setOption({
+    backgroundColor: 'transparent',
+    tooltip: {
+      trigger: 'axis',
+      formatter: function(p){
+        return p[0].name + '<br/><b>' + p[0].value.toLocaleString() + '</b> 首单';
+      }
+    },
+    grid: { top:50, bottom:50, left:64, right:30 },
+    xAxis: {
+      type: 'category',
+      data: D.fmt_dates,
+      axisLabel: { fontSize:11, interval:1, rotate:45 },
+      axisLine: { lineStyle: { color:'#d1d5db' } },
+      axisTick: { show:false }
+    },
+    yAxis: {
+      type: 'value',
+      axisLabel: { fontSize:11 },
+      splitLine: { lineStyle: { color:'#f3f4f6' } }
+    },
+    series: [
+      {
+        type: 'line',
+        data: [793, 803, 827, 875, 1168, 844, 795, 787, 688, 585, 822, 871, 874, 859, 854, 769, 776, 746, 775, 730, 733, 776, 750, 817, 837, 655, 625, 617, 670, 671],
+        smooth: true,
+        symbol: 'circle',
+        symbolSize: 4,
+        lineStyle: { width:2.5, color:'#f97316' },
+        itemStyle: { color:'#f97316' },
+        areaStyle: { color: { type:'linear',x:0,y:0,x2:0,y2:1,
+          colorStops:[{offset:0,color:'#f9731633'},{offset:1,color:'#f9731600'}] } },
+        markLine: {
+          silent: true,
+          symbol: ['none','none'],
+          data: [
+            {
+              xAxis: D.change_idx,
+              lineStyle: { color:'#ef4444', width:2, type:'dashed' },
+              label: { formatter:'策略变更\n05/27', position:'insideStartTop',
+                        color:'#ef4444', fontSize:11, fontWeight:'bold' }
+            },
+            {
+              yAxis: 774.0,
+              lineStyle: { color:'#3b82f6', width:1.5, type:'dashed' },
+              label: { formatter:'前一周均值 774.0', position:'insideEndBottom',
+                        color:'#3b82f6', fontSize:10 }
+            },
+            {
+              yAxis: 647.6,
+              lineStyle: { color:'#f97316', width:1.5, type:'dashed' },
+              label: { formatter:'变更后均值 647.6', position:'insideEndTop',
+                        color:'#f97316', fontSize:10 }
+            }
+          ]
+        }
+      }
+    ]
+  });
+  window.addEventListener('resize', function(){ chart.resize(); });
+})();
+
+
+(function(){
+  var dom = document.getElementById('chart_3');
+  if (!dom) return;
+  var chart = echarts.init(dom);
+  chart.setOption({
+    backgroundColor: 'transparent',
+    tooltip: {
+      trigger: 'axis',
+      formatter: function(p){
+        return p[0].name + '<br/><b>' + p[0].value.toLocaleString() + '</b> 首单';
+      }
+    },
+    grid: { top:50, bottom:50, left:64, right:30 },
+    xAxis: {
+      type: 'category',
+      data: D.fmt_dates,
+      axisLabel: { fontSize:11, interval:1, rotate:45 },
+      axisLine: { lineStyle: { color:'#d1d5db' } },
+      axisTick: { show:false }
+    },
+    yAxis: {
+      type: 'value',
+      axisLabel: { fontSize:11 },
+      splitLine: { lineStyle: { color:'#f3f4f6' } }
+    },
+    series: [
+      {
+        type: 'line',
+        data: [762, 694, 780, 823, 872, 847, 813, 752, 675, 702, 714, 746, 691, 715, 667, 680, 672, 646, 604, 654, 698, 633, 627, 708, 628, 575, 565, 543, 553, 530],
+        smooth: true,
+        symbol: 'circle',
+        symbolSize: 4,
+        lineStyle: { width:2.5, color:'#f97316' },
+        itemStyle: { color:'#f97316' },
+        areaStyle: { color: { type:'linear',x:0,y:0,x2:0,y2:1,
+          colorStops:[{offset:0,color:'#f9731633'},{offset:1,color:'#f9731600'}] } },
+        markLine: {
+          silent: true,
+          symbol: ['none','none'],
+          data: [
+            {
+              xAxis: D.change_idx,
+              lineStyle: { color:'#ef4444', width:2, type:'dashed' },
+              label: { formatter:'策略变更\n05/27', position:'insideStartTop',
+                        color:'#ef4444', fontSize:11, fontWeight:'bold' }
+            },
+            {
+              yAxis: 650.3,
+              lineStyle: { color:'#3b82f6', width:1.5, type:'dashed' },
+              label: { formatter:'前一周均值 650.3', position:'insideEndBottom',
+                        color:'#3b82f6', fontSize:10 }
+            },
+            {
+              yAxis: 553.2,
+              lineStyle: { color:'#f97316', width:1.5, type:'dashed' },
+              label: { formatter:'变更后均值 553.2', position:'insideEndTop',
+                        color:'#f97316', fontSize:10 }
+            }
+          ]
+        }
+      }
+    ]
+  });
+  window.addEventListener('resize', function(){ chart.resize(); });
+})();
+
+
+(function(){
+  var dom = document.getElementById('chart_4');
+  if (!dom) return;
+  var chart = echarts.init(dom);
+  chart.setOption({
+    backgroundColor: 'transparent',
+    tooltip: {
+      trigger: 'axis',
+      formatter: function(p){
+        return p[0].name + '<br/><b>' + p[0].value.toLocaleString() + '</b> 首单';
+      }
+    },
+    grid: { top:50, bottom:50, left:64, right:30 },
+    xAxis: {
+      type: 'category',
+      data: D.fmt_dates,
+      axisLabel: { fontSize:11, interval:1, rotate:45 },
+      axisLine: { lineStyle: { color:'#d1d5db' } },
+      axisTick: { show:false }
+    },
+    yAxis: {
+      type: 'value',
+      axisLabel: { fontSize:11 },
+      splitLine: { lineStyle: { color:'#f3f4f6' } }
+    },
+    series: [
+      {
+        type: 'line',
+        data: [245, 273, 253, 220, 215, 263, 244, 219, 200, 212, 207, 265, 208, 223, 225, 253, 208, 203, 225, 232, 204, 189, 179, 168, 175, 182, 184, 191, 157, 184],
+        smooth: true,
+        symbol: 'circle',
+        symbolSize: 4,
+        lineStyle: { width:2.5, color:'#f97316' },
+        itemStyle: { color:'#f97316' },
+        areaStyle: { color: { type:'linear',x:0,y:0,x2:0,y2:1,
+          colorStops:[{offset:0,color:'#f9731633'},{offset:1,color:'#f9731600'}] } },
+        markLine: {
+          silent: true,
+          symbol: ['none','none'],
+          data: [
+            {
+              xAxis: D.change_idx,
+              lineStyle: { color:'#ef4444', width:2, type:'dashed' },
+              label: { formatter:'策略变更\n05/27', position:'insideStartTop',
+                        color:'#ef4444', fontSize:11, fontWeight:'bold' }
+            },
+            {
+              yAxis: 196.0,
+              lineStyle: { color:'#3b82f6', width:1.5, type:'dashed' },
+              label: { formatter:'前一周均值 196.0', position:'insideEndBottom',
+                        color:'#3b82f6', fontSize:10 }
+            },
+            {
+              yAxis: 179.6,
+              lineStyle: { color:'#f97316', width:1.5, type:'dashed' },
+              label: { formatter:'变更后均值 179.6', position:'insideEndTop',
+                        color:'#f97316', fontSize:10 }
+            }
+          ]
+        }
+      }
+    ]
+  });
+  window.addEventListener('resize', function(){ chart.resize(); });
+})();
+
+
+(function(){
+  var dom = document.getElementById('chart_5');
+  if (!dom) return;
+  var chart = echarts.init(dom);
+  chart.setOption({
+    backgroundColor: 'transparent',
+    tooltip: {
+      trigger: 'axis',
+      formatter: function(p){
+        return p[0].name + '<br/><b>' + p[0].value.toLocaleString() + '</b> 首单';
+      }
+    },
+    grid: { top:50, bottom:50, left:64, right:30 },
+    xAxis: {
+      type: 'category',
+      data: D.fmt_dates,
+      axisLabel: { fontSize:11, interval:1, rotate:45 },
+      axisLine: { lineStyle: { color:'#d1d5db' } },
+      axisTick: { show:false }
+    },
+    yAxis: {
+      type: 'value',
+      axisLabel: { fontSize:11 },
+      splitLine: { lineStyle: { color:'#f3f4f6' } }
+    },
+    series: [
+      {
+        type: 'line',
+        data: [175, 165, 205, 183, 184, 176, 200, 233, 202, 168, 252, 204, 285, 202, 203, 201, 220, 306, 222, 180, 129, 108, 150, 123, 103, 120, 122, 105, 122, 95],
+        smooth: true,
+        symbol: 'circle',
+        symbolSize: 4,
+        lineStyle: { width:2.5, color:'#ef4444' },
+        itemStyle: { color:'#ef4444' },
+        areaStyle: { color: { type:'linear',x:0,y:0,x2:0,y2:1,
+          colorStops:[{offset:0,color:'#ef444433'},{offset:1,color:'#ef444400'}] } },
+        markLine: {
+          silent: true,
+          symbol: ['none','none'],
+          data: [
+            {
+              xAxis: D.change_idx,
+              lineStyle: { color:'#ef4444', width:2, type:'dashed' },
+              label: { formatter:'策略变更\n05/27', position:'insideStartTop',
+                        color:'#ef4444', fontSize:11, fontWeight:'bold' }
+            },
+            {
+              yAxis: 145.0,
+              lineStyle: { color:'#3b82f6', width:1.5, type:'dashed' },
+              label: { formatter:'前一周均值 145.0', position:'insideEndBottom',
+                        color:'#3b82f6', fontSize:10 }
+            },
+            {
+              yAxis: 112.8,
+              lineStyle: { color:'#f97316', width:1.5, type:'dashed' },
+              label: { formatter:'变更后均值 112.8', position:'insideEndTop',
+                        color:'#f97316', fontSize:10 }
+            }
+          ]
+        }
+      }
+    ]
+  });
+  window.addEventListener('resize', function(){ chart.resize(); });
+})();
+
+
+(function(){
+  var dom = document.getElementById('chart_6');
+  if (!dom) return;
+  var chart = echarts.init(dom);
+  chart.setOption({
+    backgroundColor: 'transparent',
+    tooltip: {
+      trigger: 'axis',
+      formatter: function(p){
+        return p[0].name + '<br/><b>' + p[0].value.toLocaleString() + '</b> 首单';
+      }
+    },
+    grid: { top:50, bottom:50, left:64, right:30 },
+    xAxis: {
+      type: 'category',
+      data: D.fmt_dates,
+      axisLabel: { fontSize:11, interval:1, rotate:45 },
+      axisLine: { lineStyle: { color:'#d1d5db' } },
+      axisTick: { show:false }
+    },
+    yAxis: {
+      type: 'value',
+      axisLabel: { fontSize:11 },
+      splitLine: { lineStyle: { color:'#f3f4f6' } }
+    },
+    series: [
+      {
+        type: 'line',
+        data: [132, 178, 178, 183, 216, 122, 117, 138, 170, 164, 213, 131, 131, 128, 114, 149, 142, 109, 109, 96, 96, 96, 87, 89, 75, 71, 81, 79, 97, 144],
+        smooth: true,
+        symbol: 'circle',
+        symbolSize: 4,
+        lineStyle: { width:2.5, color:'#10b981' },
+        itemStyle: { color:'#10b981' },
+        areaStyle: { color: { type:'linear',x:0,y:0,x2:0,y2:1,
+          colorStops:[{offset:0,color:'#10b98133'},{offset:1,color:'#10b98100'}] } },
+        markLine: {
+          silent: true,
+          symbol: ['none','none'],
+          data: [
+            {
+              xAxis: D.change_idx,
+              lineStyle: { color:'#ef4444', width:2, type:'dashed' },
+              label: { formatter:'策略变更\n05/27', position:'insideStartTop',
+                        color:'#ef4444', fontSize:11, fontWeight:'bold' }
+            },
+            {
+              yAxis: 92.6,
+              lineStyle: { color:'#3b82f6', width:1.5, type:'dashed' },
+              label: { formatter:'前一周均值 92.6', position:'insideEndBottom',
+                        color:'#3b82f6', fontSize:10 }
+            },
+            {
+              yAxis: 94.4,
+              lineStyle: { color:'#f97316', width:1.5, type:'dashed' },
+              label: { formatter:'变更后均值 94.4', position:'insideEndTop',
+                        color:'#f97316', fontSize:10 }
+            }
+          ]
+        }
+      }
+    ]
+  });
+  window.addEventListener('resize', function(){ chart.resize(); });
+})();
+
+
+(function(){
+  var dom = document.getElementById('chart_7');
+  if (!dom) return;
+  var chart = echarts.init(dom);
+  chart.setOption({
+    backgroundColor: 'transparent',
+    tooltip: {
+      trigger: 'axis',
+      formatter: function(p){
+        return p[0].name + '<br/><b>' + p[0].value.toLocaleString() + '</b> 首单';
+      }
+    },
+    grid: { top:50, bottom:50, left:64, right:30 },
+    xAxis: {
+      type: 'category',
+      data: D.fmt_dates,
+      axisLabel: { fontSize:11, interval:1, rotate:45 },
+      axisLine: { lineStyle: { color:'#d1d5db' } },
+      axisTick: { show:false }
+    },
+    yAxis: {
+      type: 'value',
+      axisLabel: { fontSize:11 },
+      splitLine: { lineStyle: { color:'#f3f4f6' } }
+    },
+    series: [
+      {
+        type: 'line',
+        data: [107, 90, 97, 88, 92, 71, 82, 94, 74, 78, 92, 72, 83, 92, 86, 88, 87, 79, 83, 82, 76, 100, 77, 103, 83, 86, 94, 96, 82, 64],
+        smooth: true,
+        symbol: 'circle',
+        symbolSize: 4,
+        lineStyle: { width:2.5, color:'#f97316' },
+        itemStyle: { color:'#f97316' },
+        areaStyle: { color: { type:'linear',x:0,y:0,x2:0,y2:1,
+          colorStops:[{offset:0,color:'#f9731633'},{offset:1,color:'#f9731600'}] } },
+        markLine: {
+          silent: true,
+          symbol: ['none','none'],
+          data: [
+            {
+              xAxis: D.change_idx,
+              lineStyle: { color:'#ef4444', width:2, type:'dashed' },
+              label: { formatter:'策略变更\n05/27', position:'insideStartTop',
+                        color:'#ef4444', fontSize:11, fontWeight:'bold' }
+            },
+            {
+              yAxis: 86.3,
+              lineStyle: { color:'#3b82f6', width:1.5, type:'dashed' },
+              label: { formatter:'前一周均值 86.3', position:'insideEndBottom',
+                        color:'#3b82f6', fontSize:10 }
+            },
+            {
+              yAxis: 84.4,
+              lineStyle: { color:'#f97316', width:1.5, type:'dashed' },
+              label: { formatter:'变更后均值 84.4', position:'insideEndTop',
+                        color:'#f97316', fontSize:10 }
+            }
+          ]
+        }
+      }
+    ]
+  });
+  window.addEventListener('resize', function(){ chart.resize(); });
+})();
+
+
+(function(){
+  var dom = document.getElementById('chart_8');
+  if (!dom) return;
+  var chart = echarts.init(dom);
+  chart.setOption({
+    backgroundColor: 'transparent',
+    tooltip: {
+      trigger: 'axis',
+      formatter: function(p){
+        return p[0].name + '<br/><b>' + p[0].value.toLocaleString() + '</b> 首单';
+      }
+    },
+    grid: { top:50, bottom:50, left:64, right:30 },
+    xAxis: {
+      type: 'category',
+      data: D.fmt_dates,
+      axisLabel: { fontSize:11, interval:1, rotate:45 },
+      axisLine: { lineStyle: { color:'#d1d5db' } },
+      axisTick: { show:false }
+    },
+    yAxis: {
+      type: 'value',
+      axisLabel: { fontSize:11 },
+      splitLine: { lineStyle: { color:'#f3f4f6' } }
+    },
+    series: [
+      {
+        type: 'line',
+        data: [10, 19, 19, 14, 15, 23, 13, 21, 23, 27, 24, 33, 26, 33, 19, 26, 35, 27, 25, 34, 49, 51, 62, 80, 88, 61, 87, 61, 71, 83],
+        smooth: true,
+        symbol: 'circle',
+        symbolSize: 4,
+        lineStyle: { width:2.5, color:'#10b981' },
+        itemStyle: { color:'#10b981' },
+        areaStyle: { color: { type:'linear',x:0,y:0,x2:0,y2:1,
+          colorStops:[{offset:0,color:'#10b98133'},{offset:1,color:'#10b98100'}] } },
+        markLine: {
+          silent: true,
+          symbol: ['none','none'],
+          data: [
+            {
+              xAxis: D.change_idx,
+              lineStyle: { color:'#ef4444', width:2, type:'dashed' },
+              label: { formatter:'策略变更\n05/27', position:'insideStartTop',
+                        color:'#ef4444', fontSize:11, fontWeight:'bold' }
+            },
+            {
+              yAxis: 55.6,
+              lineStyle: { color:'#3b82f6', width:1.5, type:'dashed' },
+              label: { formatter:'前一周均值 55.6', position:'insideEndBottom',
+                        color:'#3b82f6', fontSize:10 }
+            },
+            {
+              yAxis: 72.6,
+              lineStyle: { color:'#f97316', width:1.5, type:'dashed' },
+              label: { formatter:'变更后均值 72.6', position:'insideEndTop',
+                        color:'#f97316', fontSize:10 }
+            }
+          ]
+        }
+      }
+    ]
+  });
+  window.addEventListener('resize', function(){ chart.resize(); });
+})();
+
+});
+</script>
+</body>
+</html>
