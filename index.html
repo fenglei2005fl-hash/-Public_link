@@ -1,993 +1,1546 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>最近30日各游戏拉新首单分析报告</title>
-<script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
-<style>
-:root{
-  --bg:#f0f2f5;--card:#fff;--border:#e5e7eb;--text:#111827;--muted:#6b7280;
-  --red:#ef4444;--red-bg:#fef2f2;--green:#10b981;--green-bg:#ecfdf5;
-  --orange:#f97316;--orange-bg:#fff7ed;--blue:#3b82f6;--blue-bg:#eff6ff;
-  --font:'PingFang SC','Noto Sans SC','Microsoft YaHei',sans-serif;
-  --mono:'JetBrains Mono','Fira Code',monospace;
-}
-*{box-sizing:border-box;margin:0;padding:0}
-body{background:var(--bg);font-family:var(--font);color:var(--text);padding:24px}
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Write-SQL Plugin 演示 · 拼团游戏数据分析</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark-dimmed.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <style>
+    :root {
+      --bg:         #0a0c14;
+      --bg2:        #0e1018;
+      --surface:    #12151f;
+      --surface2:   #171b28;
+      --border:     #1e2535;
+      --border2:    #28334d;
+      --text:       #e2eaf8;
+      --text2:      #7d92b5;
+      --text3:      #3e5070;
+      --user-color: #7c6af7;
+      --user-bg:    rgba(124,106,247,.1);
+      --user-bdr:   rgba(124,106,247,.3);
+      --ai-color:   #22d3a0;
+      --ai-bg:      rgba(34,211,160,.09);
+      --ai-bdr:     rgba(34,211,160,.28);
+      --amber:      #f59e0b;
+      --amber2:     #fcd34d;
+      --amber-bg:   rgba(245,158,11,.1);
+      --amber-bdr:  rgba(245,158,11,.3);
+      --blue:       #60a5fa;
+      --blue-bg:    rgba(96,165,250,.09);
+      --blue-bdr:   rgba(96,165,250,.25);
+      --warn:       #fb923c;
+      --warn-bg:    rgba(251,146,60,.1);
+      --warn-bdr:   rgba(251,146,60,.28);
+      --sans: 'Inter', -apple-system, sans-serif;
+      --mono: 'JetBrains Mono', monospace;
+    }
 
-.page-header{
-  background:linear-gradient(135deg,#1e3a5f,#2d6089);
-  border-radius:16px;padding:32px 36px;margin-bottom:24px;color:#fff;
-}
-.page-header h1{font-size:1.55rem;font-weight:700;margin-bottom:6px}
-.page-header .sub{font-size:.85rem;opacity:.75;line-height:1.8}
-.badge-row{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
-.badge{padding:4px 12px;border-radius:999px;font-size:.75rem;font-weight:600;
-       border:1px solid rgba(255,255,255,.3);color:#fff;background:rgba(255,255,255,.12)}
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
 
-.kpi-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:14px;margin-bottom:24px}
-.kpi-card{background:var(--card);border:1px solid var(--border);border-radius:12px;
-          padding:18px;position:relative;overflow:hidden}
-.kpi-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--kc,#3b82f6)}
-.kpi-label{font-size:.75rem;color:var(--muted);margin-bottom:6px}
-.kpi-value{font-size:1.5rem;font-weight:700;line-height:1;margin-bottom:4px}
-.kpi-delta{font-size:.8rem;font-weight:600}
-.d-neg{color:var(--red)} .d-pos{color:var(--green)}
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      font-size: 14px;
+      line-height: 1.65;
+      overflow-x: hidden;
+    }
 
-.section{background:var(--card);border:1px solid var(--border);border-radius:12px;
-         padding:24px;margin-bottom:24px}
-.sec-title{font-size:1rem;font-weight:700;margin-bottom:16px;
-           display:flex;align-items:center;gap:8px}
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
 
-.policy-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px}
-.pc{border-radius:10px;padding:16px;border:1px solid}
-.pc.neg{background:var(--red-bg);border-color:#fca5a5}
-.pc.pos{background:var(--green-bg);border-color:#6ee7b7}
-.pc-date{font-size:.72rem;font-family:var(--mono);font-weight:600;margin-bottom:5px}
-.pc.neg .pc-date{color:var(--red)} .pc.pos .pc-date{color:var(--green)}
-.pc-title{font-size:.92rem;font-weight:700;color:var(--text);margin-bottom:4px}
-.pc-site{display:inline-block;padding:2px 8px;border-radius:4px;font-size:.75rem;
-         font-weight:600;margin-bottom:8px}
-.pc.neg .pc-site{background:rgba(239,68,68,.12);color:var(--red)}
-.pc.pos .pc-site{background:rgba(16,185,129,.12);color:var(--green)}
-.pc-body{font-size:.82rem;color:#374151;line-height:1.65}
-.pc-impact{font-size:.78rem;font-weight:600;margin-top:8px;padding:4px 8px;border-radius:4px}
-.pc.neg .pc-impact{background:rgba(239,68,68,.08);color:var(--red)}
-.pc.pos .pc-impact{background:rgba(16,185,129,.08);color:var(--green)}
+    /* ── HERO ── */
+    .hero {
+      padding: 72px 0 80px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
 
-.sum-table{width:100%;border-collapse:collapse;font-size:.85rem}
-.sum-table th{background:#f8fafc;color:var(--muted);font-size:.78rem;font-weight:600;
-              padding:10px 14px;text-align:left;border-bottom:2px solid var(--border)}
-.sum-table td{padding:10px 14px;border-bottom:1px solid #f3f4f6;vertical-align:middle}
-.sum-table tr:hover td{background:#fafafa}
-.note-box{background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:12px 16px;
-          font-size:.82rem;color:#92400e;margin-top:14px;line-height:1.7}
+    .hero-glow {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+    }
 
-/* ── per-game blocks ── */
-.game-block{background:var(--card);border:1px solid var(--border);border-radius:12px;
-            padding:24px;margin-bottom:20px}
-.game-header{display:flex;justify-content:space-between;align-items:flex-start;
-             margin-bottom:16px;flex-wrap:wrap;gap:10px}
-.game-title-wrap{display:flex;align-items:flex-start;gap:12px}
-.game-icon{font-size:1.5rem;flex-shrink:0}
-.game-title{font-size:1.05rem;font-weight:700;color:var(--text)}
-.game-meta{font-size:.75rem;color:var(--muted);margin-top:3px;font-family:var(--mono)}
-.game-chg{font-size:1.4rem;font-weight:700;text-align:right;line-height:1.2}
-.game-chg-sub{font-size:.75rem;color:var(--muted);font-weight:400;margin-top:4px}
-.chart-box{height:280px;width:100%;margin-bottom:14px}
-.game-analysis{background:#f8fafc;border-left:3px solid #3b82f6;border-radius:0 8px 8px 0;
-               padding:12px 16px;font-size:.83rem;color:#374151;line-height:1.75}
+    .hero-glow::before {
+      content: '';
+      position: absolute;
+      width: 700px; height: 400px;
+      top: -80px; left: 50%;
+      transform: translateX(-50%);
+      background: radial-gradient(ellipse,
+        rgba(124,106,247,.12) 0%,
+        rgba(34,211,160,.07) 50%,
+        transparent 75%);
+      animation: glow 6s ease-in-out infinite;
+    }
 
-.total-chart{height:340px;width:100%}
-footer{text-align:center;padding:20px;color:var(--muted);font-size:.75rem;
-       border-top:1px solid var(--border);margin-top:8px}
-</style>
+    @keyframes glow {
+      0%,100% { opacity: .7; transform: translateX(-50%) scale(1); }
+      50%      { opacity: 1;  transform: translateX(-50%) scale(1.08); }
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 5px 14px;
+      background: var(--user-bg);
+      border: 1px solid var(--user-bdr);
+      border-radius: 20px;
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--user-color);
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      margin-bottom: 24px;
+      position: relative;
+    }
+
+    .dot-live {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--ai-color);
+      animation: blink 1.4s ease-in-out infinite;
+    }
+
+    @keyframes blink {
+      0%,100% { opacity: 1; }
+      50%      { opacity: .3; }
+    }
+
+    .hero-title {
+      font-size: clamp(36px, 5vw, 60px);
+      font-weight: 700;
+      letter-spacing: -.02em;
+      line-height: 1.1;
+      color: #fff;
+      margin-bottom: 16px;
+      position: relative;
+    }
+
+    .hero-title .g1 { color: var(--user-color); }
+    .hero-title .g2 { color: var(--ai-color); }
+
+    .hero-desc {
+      font-size: 15px;
+      color: var(--text2);
+      max-width: 540px;
+      margin: 0 auto 40px;
+      font-weight: 300;
+      line-height: 1.75;
+      position: relative;
+    }
+
+    .hero-stats {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      position: relative;
+    }
+
+    .hstat {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 7px 16px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 500;
+      border: 1px solid;
+    }
+
+    .hstat-v { background: var(--user-bg); border-color: var(--user-bdr); color: var(--user-color); }
+    .hstat-g { background: var(--ai-bg);   border-color: var(--ai-bdr);   color: var(--ai-color); }
+    .hstat-a { background: var(--amber-bg);border-color: var(--amber-bdr);color: var(--amber2); }
+
+    /* ── LAYOUT ── */
+    .wrap {
+      max-width: 920px;
+      margin: 0 auto;
+      padding: 0 24px 100px;
+    }
+
+    /* ── SECTION LABEL ── */
+    .section-label {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin: 52px 0 28px;
+    }
+
+    .section-label::before,
+    .section-label::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    .section-label span {
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: var(--text3);
+      white-space: nowrap;
+    }
+
+    /* ── CHAT THREAD ── */
+    .chat { display: flex; flex-direction: column; gap: 0; }
+
+    /* Turn = one full exchange */
+    .turn {
+      position: relative;
+      margin-bottom: 36px;
+    }
+
+    /* ── USER BUBBLE ── */
+    .msg-user {
+      display: flex;
+      flex-direction: row-reverse;
+      align-items: flex-start;
+      gap: 12px;
+      margin-bottom: 6px;
+    }
+
+    .avatar {
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 15px;
+      font-weight: 600;
+    }
+
+    .av-user {
+      background: var(--user-bg);
+      border: 1.5px solid var(--user-bdr);
+      color: var(--user-color);
+      font-size: 12px;
+    }
+
+    .av-ai {
+      background: var(--ai-bg);
+      border: 1.5px solid var(--ai-bdr);
+      color: var(--ai-color);
+      font-size: 13px;
+    }
+
+    .bubble-user {
+      background: var(--user-bg);
+      border: 1px solid var(--user-bdr);
+      border-radius: 16px 4px 16px 16px;
+      padding: 13px 18px;
+      max-width: 72%;
+      font-size: 14.5px;
+      color: #fff;
+      line-height: 1.6;
+      position: relative;
+    }
+
+    .bubble-user::after {
+      content: '';
+      position: absolute;
+      top: 0; right: -8px;
+      border: 8px solid transparent;
+      border-top-color: var(--user-bdr);
+      border-right: none;
+    }
+
+    /* ── AI RESPONSE ── */
+    .msg-ai {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      margin-left: 12px;
+    }
+
+    .ai-content { flex: 1; min-width: 0; }
+
+    .ai-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .ai-name {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--ai-color);
+      letter-spacing: .05em;
+    }
+
+    .ai-thinking {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--text3);
+      padding: 3px 10px;
+      background: var(--surface2);
+      border-radius: 10px;
+      border: 1px solid var(--border);
+    }
+
+    .think-dot {
+      width: 4px; height: 4px;
+      border-radius: 50%;
+      background: var(--text3);
+    }
+
+    /* ── PROCESS CARDS ── */
+    .proc-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      margin-bottom: 10px;
+      transition: border-color .2s;
+    }
+
+    .proc-card:hover { border-color: var(--border2); }
+
+    .proc-head {
+      display: flex;
+      align-items: center;
+      gap: 13px;
+      padding: 14px 18px;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .proc-icon {
+      width: 32px; height: 32px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      flex-shrink: 0;
+    }
+
+    .pi-v { background: var(--user-bg); border: 1px solid var(--user-bdr); }
+    .pi-g { background: var(--ai-bg);   border: 1px solid var(--ai-bdr); }
+    .pi-a { background: var(--amber-bg);border: 1px solid var(--amber-bdr); }
+    .pi-b { background: var(--blue-bg); border: 1px solid var(--blue-bdr); }
+    .pi-w { background: var(--warn-bg); border: 1px solid var(--warn-bdr); }
+
+    .proc-head-text { flex: 1; }
+
+    .proc-head-text h4 {
+      font-size: 13.5px;
+      font-weight: 600;
+      color: #fff;
+      margin-bottom: 1px;
+    }
+
+    .proc-head-text p {
+      font-size: 11.5px;
+      color: var(--text2);
+      font-weight: 300;
+    }
+
+    .proc-badge {
+      font-family: var(--mono);
+      font-size: 10.5px;
+      font-weight: 500;
+      padding: 3px 10px;
+      border-radius: 6px;
+      white-space: nowrap;
+    }
+
+    .pb-ok   { background: var(--ai-bg);   color: var(--ai-color); border: 1px solid var(--ai-bdr); }
+    .pb-warn { background: var(--warn-bg);  color: var(--warn);     border: 1px solid var(--warn-bdr); }
+    .pb-info { background: var(--blue-bg);  color: var(--blue);     border: 1px solid var(--blue-bdr); }
+
+    .proc-body {
+      border-top: 1px solid var(--border);
+      padding: 16px 18px;
+      display: none;
+    }
+
+    .proc-card.open .proc-body { display: block; }
+
+    .chevron {
+      color: var(--text3);
+      font-size: 12px;
+      transition: transform .25s;
+    }
+
+    .proc-card.open .chevron { transform: rotate(90deg); }
+
+    /* ── KVCELLS ── */
+    .kvgrid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+
+    .kvcell {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 13px;
+    }
+
+    .kvcell-k {
+      font-family: var(--mono);
+      font-size: 9px;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      color: var(--text3);
+      margin-bottom: 4px;
+    }
+
+    .kvcell-v {
+      font-family: var(--mono);
+      font-size: 13px;
+      color: var(--text);
+    }
+
+    .kvcell-v.v { color: var(--user-color); }
+    .kvcell-v.g { color: var(--ai-color); }
+    .kvcell-v.a { color: var(--amber2); }
+
+    /* ── INLINE TEXT ── */
+    .prose {
+      font-size: 13px;
+      color: var(--text2);
+      line-height: 1.75;
+    }
+
+    .prose strong { color: var(--text); font-weight: 500; }
+
+    code {
+      font-family: var(--mono);
+      font-size: 11.5px;
+      background: var(--surface2);
+      padding: 1.5px 5px;
+      border-radius: 4px;
+      color: var(--amber2);
+    }
+
+    /* ── FUNNEL VISUAL ── */
+    .funnel {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      margin: 14px 0;
+    }
+
+    .funnel-step {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 16px;
+      border-radius: 8px;
+      border: 1px solid;
+      transition: transform .2s;
+    }
+
+    .funnel-step:hover { transform: translateX(4px); }
+
+    .fs1 { background: rgba(124,106,247,.08); border-color: rgba(124,106,247,.25); }
+    .fs2 { background: rgba(96,165,250,.07);  border-color: rgba(96,165,250,.22);  margin-left: 20px; }
+    .fs3 { background: rgba(245,158,11,.07);  border-color: rgba(245,158,11,.22);  margin-left: 40px; }
+    .fs4 { background: rgba(34,211,160,.08);  border-color: rgba(34,211,160,.25);  margin-left: 60px; }
+
+    .fs-num {
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 500;
+      padding: 2px 8px;
+      border-radius: 5px;
+      flex-shrink: 0;
+    }
+
+    .fs1 .fs-num { background: var(--user-bg); color: var(--user-color); }
+    .fs2 .fs-num { background: var(--blue-bg); color: var(--blue); }
+    .fs3 .fs-num { background: var(--amber-bg); color: var(--amber2); }
+    .fs4 .fs-num { background: var(--ai-bg); color: var(--ai-color); }
+
+    .fs-name { font-size: 13px; font-weight: 500; color: var(--text); flex: 1; }
+
+    .fs-meta {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--text2);
+      text-align: right;
+    }
+
+    .fs-arrow {
+      font-size: 10px;
+      color: var(--text3);
+      margin-left: 30px;
+    }
+
+    /* ── FILE LIST ── */
+    .flist { display: flex; flex-direction: column; gap: 6px; }
+
+    .fitem {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 13px;
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      font-size: 12.5px;
+    }
+
+    .fitem-name { font-family: var(--mono); font-size: 11.5px; color: var(--blue); flex: 1; }
+    .fitem-desc { font-size: 11px; color: var(--text2); }
+
+    /* ── WARN BANNER ── */
+    .wbanner {
+      background: var(--warn-bg);
+      border: 1px solid var(--warn-bdr);
+      border-radius: 10px;
+      padding: 12px 16px;
+      display: flex;
+      gap: 11px;
+      align-items: flex-start;
+      margin: 12px 0;
+    }
+
+    .wbanner-icon { font-size: 16px; flex-shrink: 0; line-height: 1.6; }
+    .wbanner-title { font-size: 12.5px; font-weight: 600; color: var(--warn); margin-bottom: 2px; }
+    .wbanner-body { font-size: 12px; color: var(--text2); line-height: 1.65; }
+
+    /* ── SQL OUTPUT ── */
+    .sql-output {
+      margin-top: 14px;
+    }
+
+    .sql-tabs {
+      display: flex;
+      gap: 3px;
+      margin-bottom: -1px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .stab {
+      padding: 7px 18px;
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-bottom: none;
+      border-radius: 7px 7px 0 0;
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--text2);
+      cursor: pointer;
+      transition: all .2s;
+    }
+
+    .stab.on {
+      background: var(--surface2);
+      color: #fff;
+      border-color: var(--border2);
+    }
+
+    .spane { display: none; }
+    .spane.on { display: block; }
+
+    .codebox {
+      background: #0d1117;
+      border: 1px solid var(--border2);
+      border-radius: 0 10px 10px 10px;
+      overflow: hidden;
+    }
+
+    .codebox-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 14px;
+      background: #111722;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .codebox-eng {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--text3);
+      letter-spacing: .06em;
+    }
+
+    .copybtn {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 11px;
+      background: var(--surface);
+      border: 1px solid var(--border2);
+      border-radius: 5px;
+      font-size: 11px;
+      font-family: var(--mono);
+      color: var(--text2);
+      cursor: pointer;
+      transition: all .2s;
+    }
+
+    .copybtn:hover { background: var(--ai-bg); border-color: var(--ai-bdr); color: var(--ai-color); }
+    .copybtn.ok    { background: var(--ai-bg); border-color: var(--ai-bdr); color: var(--ai-color); }
+
+    .codebox pre {
+      margin: 0;
+      padding: 20px;
+      overflow-x: auto;
+      max-height: 500px;
+      overflow-y: auto;
+    }
+
+    .codebox pre code {
+      font-family: var(--mono) !important;
+      font-size: 11.5px !important;
+      line-height: 1.65;
+      background: transparent !important;
+      padding: 0 !important;
+    }
+
+    /* ── KEY NOTES TABLE ── */
+    .notes-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12.5px;
+      margin-top: 12px;
+    }
+
+    .notes-table th {
+      padding: 7px 12px;
+      text-align: left;
+      font-family: var(--mono);
+      font-size: 9.5px;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: var(--text3);
+      background: var(--bg2);
+      border: 1px solid var(--border);
+    }
+
+    .notes-table td {
+      padding: 9px 12px;
+      border: 1px solid var(--border);
+      color: var(--text2);
+      vertical-align: top;
+    }
+
+    .notes-table td:first-child {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--ai-color);
+      white-space: nowrap;
+      background: var(--bg2);
+    }
+
+    .notes-table tr:hover td { background: var(--surface2); }
+
+    /* ── VALIDATOR ── */
+    .vblock {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+      margin: 12px 0;
+    }
+
+    .vhead {
+      padding: 8px 13px;
+      background: var(--surface2);
+      border-bottom: 1px solid var(--border);
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--text3);
+      letter-spacing: .05em;
+    }
+
+    .vrow {
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      padding: 10px 13px;
+      font-family: var(--mono);
+      font-size: 11.5px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .vrow:last-child { border-bottom: none; }
+
+    .vtag {
+      font-size: 10px;
+      padding: 2px 7px;
+      border-radius: 4px;
+      flex-shrink: 0;
+    }
+
+    .vtag-ok   { background: var(--ai-bg);   color: var(--ai-color); }
+    .vtag-warn { background: var(--warn-bg);  color: var(--warn); }
+
+    .vmsg { color: var(--text2); }
+
+    /* ── SCROLL FADE IN ── */
+    .fade-in {
+      opacity: 0;
+      transform: translateY(16px);
+      transition: opacity .4s ease, transform .4s ease;
+    }
+
+    .fade-in.in {
+      opacity: 1;
+      transform: none;
+    }
+
+    /* ── FOOTER ── */
+    footer {
+      max-width: 920px;
+      margin: 0 auto;
+      padding: 28px 24px 48px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .foot-brand {
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--text3);
+    }
+
+    .foot-brand em { color: var(--ai-color); font-style: normal; }
+
+    .foot-meta {
+      font-family: var(--mono);
+      font-size: 10.5px;
+      color: var(--text3);
+      text-align: right;
+      line-height: 1.7;
+    }
+
+    /* ── INTRO CARD ── */
+    .intro-card {
+      background: linear-gradient(135deg, rgba(124,106,247,.08) 0%, rgba(34,211,160,.06) 100%);
+      border: 1px solid rgba(124,106,247,.25);
+      border-radius: 14px;
+      padding: 24px 28px;
+      margin-bottom: 8px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .intro-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--user-color), var(--ai-color), transparent);
+      opacity: .5;
+    }
+
+    .intro-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 6px;
+    }
+
+    .intro-desc {
+      font-size: 13px;
+      color: var(--text2);
+      line-height: 1.7;
+    }
+
+    .intro-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+      margin-top: 14px;
+    }
+
+    .ichip {
+      font-family: var(--mono);
+      font-size: 11px;
+      padding: 3px 10px;
+      border-radius: 6px;
+      border: 1px solid;
+    }
+
+    .ic-v { background: var(--user-bg); border-color: var(--user-bdr); color: var(--user-color); }
+    .ic-g { background: var(--ai-bg);   border-color: var(--ai-bdr);   color: var(--ai-color); }
+    .ic-a { background: var(--amber-bg);border-color: var(--amber-bdr);color: var(--amber2); }
+  </style>
 </head>
 <body>
 
-<div class="page-header">
-  <h1>最近30日各游戏拉新首单分析报告</h1>
-  <div class="sub">
-    数据范围：2026-05-02 ~ 2026-05-31 &nbsp;|&nbsp;
-    对比口径：<b>前一周</b>（05/20~05/26）vs 变更后（05/27~05/31）&nbsp;|&nbsp;
-    策略变更节点：<b>2026-05-27</b>
+<!-- ── HERO ── -->
+<section class="hero">
+  <div class="hero-glow"></div>
+  <div class="hero-badge">
+    <span class="dot-live"></span>
+    Write-SQL Plugin · 裂变拉新业务线
   </div>
-  <div class="badge-row">
-    <span class="badge">📊 核心游戏：9个（前一周日均 &gt; 50）</span>
-    <span class="badge">⚠️ 策略变更：2026-05-27</span>
-    <span class="badge">前一周 7天 vs 变更后 5天</span>
+  <h1 class="hero-title">
+    <span class="g1">用户</span> × <span class="g2">AI</span><br>SQL 生成完整对话
+  </h1>
+  <p class="hero-desc">
+    3 轮对话，从业务问题到生产级 SQL<br>
+    覆盖漏斗分析 · 多维拆解 · 类目分布 · 方言转换
+  </p>
+  <div class="hero-stats">
+    <span class="hstat hstat-v">💬 3 轮完整对话</span>
+    <span class="hstat hstat-g">✅ SQL 全部通过校验</span>
+    <span class="hstat hstat-a">⚡ Hive + Trino 双引擎</span>
   </div>
-</div>
+</section>
 
-<div class="kpi-grid" id="kpi-grid"></div>
+<!-- ── MAIN ── -->
+<div class="wrap">
 
-<div class="section">
-  <div class="sec-title">📋 业务策略变更日志（2026-05-27）</div>
-  <div class="policy-grid">
-    <div class="pc neg">
-      <div class="pc-date">2026-05-27</div>
-      <div class="pc-title">US站点分控拦截策略上线</div>
-      <div class="pc-site">🇺🇸 US 站点</div>
-      <div class="pc-body">因复购率下降，在分控上增加拦截策略，限制部分用户参与裂变游戏并完成首单。</div>
-      <div class="pc-impact">📉 预计影响首单数 30%~40%</div>
+  <!-- INTRO -->
+  <div class="intro-card fade-in">
+    <div class="intro-title">🎯 这个演示在讲什么？</div>
+    <div class="intro-desc">
+      一个数据分析师想查询拼团游戏的数据，从选择业务线开始，提出 3 个递进的数据需求，AI 全程自动完成「业务识别 → 资料加载 → 口径确认 → SQL生成 → 自动校验 → 方言转换」的完整流程。
     </div>
-    <div class="pc pos">
-      <div class="pc-date">2026-05-27</div>
-      <div class="pc-title">翻牌3.0 上线 Naver 本地化权益</div>
-      <div class="pc-site">🇰🇷 KR 站点</div>
-      <div class="pc-body">通过本地化权益提升裂变规模，韩国站点翻牌3.0接入Naver权益，针对本土用户偏好定制奖励。</div>
-      <div class="pc-impact">📈 预计带动首单规模增长</div>
-    </div>
-    <div class="pc pos">
-      <div class="pc-date">2026-05-27</div>
-      <div class="pc-title">翻牌4.0 上线 PayPay 可选机制</div>
-      <div class="pc-site">🇯🇵 JP 站点</div>
-      <div class="pc-body">日本站点翻牌4.0上线PayPay奖励可选机制，用户可自选奖励类型，返现补贴拉升转化率。</div>
-      <div class="pc-impact">📈 促进首单规模增长</div>
+    <div class="intro-chips">
+      <span class="ichip ic-v">需求1：订单类目分布</span>
+      <span class="ichip ic-v">需求2：每日开团/参团/支付</span>
+      <span class="ichip ic-v">需求3：访问→点击→加购→支付漏斗</span>
+      <span class="ichip ic-g">数据表: dw_mkt_group_buy_member_h</span>
+      <span class="ichip ic-g">数据表: dw_ssa_ug_game_elmt_clk_di</span>
+      <span class="ichip ic-a">全程 0 错误 · 仅1条 WARN</span>
     </div>
   </div>
-</div>
 
-<div class="section">
-  <div class="sec-title">📈 全游戏每日拉新首单总量（含变更节点）</div>
-  <div class="total-chart" id="chart-total"></div>
-</div>
+  <!-- ─── TURN 0: 业务线选择 ─── -->
+  <div class="section-label"><span>// 开场 · 业务线选择</span></div>
 
-<div class="section">
-  <div class="sec-title">📊 核心游戏策略前后对比汇总</div>
-  <table class="sum-table">
-    <thead>
-      <tr>
-        <th>游戏名称</th>
-        <th>类型ID</th>
-        <th>前一周日均（05/20~26）</th>
-        <th>变更后日均（05/27~31）</th>
-        <th>变化幅度</th>
-      </tr>
-    </thead>
-    <tbody><tr><td><b>拉新返佣</b></td><td style="font-family:monospace;color:#9ca3af;font-size:.78rem">205</td><td>2,660.6</td><td>1,973.8</td><td style="color:#dc2626;font-weight:700">↓ -25.8%</td></tr>
-<tr><td><b>翻牌4.0</b></td><td style="font-family:monospace;color:#9ca3af;font-size:.78rem">104</td><td>1,542.4</td><td>1,108.8</td><td style="color:#dc2626;font-weight:700">↓ -28.1%</td></tr>
-<tr><td><b>FREE ITEM - 砍一刀</b></td><td style="font-family:monospace;color:#9ca3af;font-size:.78rem">28</td><td>774.0</td><td>647.6</td><td style="color:#f97316;font-weight:700">↓ -16.3%</td></tr>
-<tr><td><b>摇钱树</b></td><td style="font-family:monospace;color:#9ca3af;font-size:.78rem">90</td><td>650.3</td><td>553.2</td><td style="color:#f97316;font-weight:700">↓ -14.9%</td></tr>
-<tr><td><b>新养成游戏（进度）</b></td><td style="font-family:monospace;color:#9ca3af;font-size:.78rem">89</td><td>196.0</td><td>179.6</td><td style="color:#f97316;font-weight:700">↓ -8.4%</td></tr>
-<tr><td><b>JACKPOT QUEST</b></td><td style="font-family:monospace;color:#9ca3af;font-size:.78rem">101</td><td>145.0</td><td>112.8</td><td style="color:#dc2626;font-weight:700">↓ -22.2%</td></tr>
-<tr><td><b>FI小团极简</b></td><td style="font-family:monospace;color:#9ca3af;font-size:.78rem">102</td><td>92.6</td><td>94.4</td><td style="color:#059669;font-weight:700">↑ +1.9%</td></tr>
-<tr><td><b>摇钱树阶段发奖版</b></td><td style="font-family:monospace;color:#9ca3af;font-size:.78rem">103</td><td>86.3</td><td>84.4</td><td style="color:#6b7280;font-weight:700">↓ -2.2%</td></tr>
-<tr><td><b>GROUPBUY</b></td><td style="font-family:monospace;color:#9ca3af;font-size:.78rem">GROUPBUY</td><td>55.6</td><td>72.6</td><td style="color:#059669;font-weight:700">↑ +30.6%</td></tr></tbody>
-  </table>
-  <div class="note-box">
-    ⚠️ <b>对比口径说明</b>：本报告以 05/20~05/26（策略变更前一周，7天）作为基准期，
-    对比 05/27~05/31（变更后5天）的均值。注意变更后观察窗口仅5天，统计结论存在一定随机性，
-    建议持续观测至6月中旬（至少10个工作日）后再做最终判断。
-    翻牌4.0 因5月上旬处于爬坡期，前一周均值（1542）显著高于全月均值（962），
-    以前一周为基准更能准确反映策略变更后的实际影响。
-  </div>
-</div>
+  <div class="chat">
+    <div class="turn fade-in">
+      <div class="msg-user">
+        <div class="avatar av-user">我</div>
+        <div class="bubble-user">
+          /shein-fission-sql
+        </div>
+      </div>
 
-<div class="section">
-  <div class="sec-title">🔍 核心游戏逐日趋势与分析（9个，前一周日均 &gt; 50）</div>
-  <div style="font-size:.82rem;color:var(--muted);margin-bottom:20px;line-height:1.7">
-    每图包含：<span style="color:#ef4444">■</span> 策略变更节点（05/27红色虚线）&nbsp;·&nbsp;
-    <span style="color:#3b82f6">■</span> 前一周均值参考线（蓝色虚线）&nbsp;·&nbsp;
-    <span style="color:#f97316">■</span> 变更后均值参考线（橙色虚线）
-  </div>
+      <div class="msg-ai" style="margin-top:10px">
+        <div class="avatar av-ai">AI</div>
+        <div class="ai-content">
+          <div class="ai-header">
+            <span class="ai-name">Claude · Write-SQL Plugin</span>
+            <span class="ai-thinking"><span class="think-dot"></span> 读取业务线注册表</span>
+          </div>
 
-<div class="game-block">
-  <div class="game-header">
-    <div class="game-title-wrap">
-      <span class="game-icon">📉</span>
-      <div>
-        <div class="game-title">拉新返佣</div>
-        <div class="game-meta">game_type: 205 &nbsp;·&nbsp; 前一周日均：2660.6</div>
+          <div class="proc-card open">
+            <div class="proc-head" onclick="tog(this)">
+              <div class="proc-icon pi-v">📋</div>
+              <div class="proc-head-text">
+                <h4>业务线选择</h4>
+                <p>未收到具体需求，展示选择界面</p>
+              </div>
+              <span class="chevron">›</span>
+            </div>
+            <div class="proc-body">
+              <div class="kvgrid">
+                <div class="kvcell">
+                  <div class="kvcell-k">注册业务线数</div>
+                  <div class="kvcell-v a">3 条</div>
+                </div>
+                <div class="kvcell">
+                  <div class="kvcell-k">用户触发</div>
+                  <div class="kvcell-v v">直接唤起</div>
+                </div>
+                <div class="kvcell">
+                  <div class="kvcell-k">匹配得分</div>
+                  <div class="kvcell-v">全部 &lt; 50 分</div>
+                </div>
+              </div>
+              <div style="background:var(--bg2);border:1px solid var(--border);border-left:3px solid var(--user-color);border-radius:8px;padding:14px 18px;">
+                <div style="font-size:13px;color:var(--text);margin-bottom:10px;font-weight:500;">📋 请选择你要查询的业务线：</div>
+                <div style="display:flex;flex-direction:column;gap:7px">
+                  <div style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--surface2);border-radius:6px;border:1px solid var(--border2)">
+                    <span style="font-family:var(--mono);font-size:12px;color:var(--user-color);font-weight:600">1</span>
+                    <span style="font-size:13px;color:var(--text)">裂变拉新业务线</span>
+                    <span style="font-size:11px;color:var(--text2);flex:1">用户增长中心裂变游戏、助力、分享、邀请相关分析</span>
+                  </div>
+                  <div style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--bg2);border-radius:6px;border:1px solid var(--border)">
+                    <span style="font-family:var(--mono);font-size:12px;color:var(--text3);font-weight:600">2</span>
+                    <span style="font-size:13px;color:var(--text2)">新客转化业务线</span>
+                    <span style="font-size:11px;color:var(--text3);flex:1">全公司新用户注册、首单、留存、拉新成本相关分析</span>
+                  </div>
+                  <div style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--bg2);border-radius:6px;border:1px solid var(--border)">
+                    <span style="font-family:var(--mono);font-size:12px;color:var(--text3);font-weight:600">3</span>
+                    <span style="font-size:13px;color:var(--text2)">商品上架业务线</span>
+                    <span style="font-size:11px;color:var(--text3);flex:1">商品中心上架、库存、SKU、SPU、品类相关分析</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
-    <div class="game-chg" style="color:#dc2626">-25.8%
-      <div class="game-chg-sub">2660.6 → 1973.8</div>
-    </div>
-  </div>
-  <div class="chart-box" id="chart_0"></div>
-  <div class="game-analysis">变更前一周日均 2660.6，变更后日均 1973.8，下降 687（-25.8%）。作为规模最大的拉新游戏，US站点分控拦截策略对其影响最为显著。建议拆分US与非US站点数据进行归因，评估分控策略的实际波及范围。</div>
-</div>
 
-<div class="game-block">
-  <div class="game-header">
-    <div class="game-title-wrap">
-      <span class="game-icon">📉</span>
-      <div>
-        <div class="game-title">翻牌4.0</div>
-        <div class="game-meta">game_type: 104 &nbsp;·&nbsp; 前一周日均：1542.4</div>
+    <!-- user: 选1 -->
+    <div class="turn fade-in">
+      <div class="msg-user">
+        <div class="avatar av-user">我</div>
+        <div class="bubble-user">1</div>
+      </div>
+      <div class="msg-ai" style="margin-top:10px">
+        <div class="avatar av-ai">AI</div>
+        <div class="ai-content">
+          <div style="background:var(--ai-bg);border:1px solid var(--ai-bdr);border-radius:10px;padding:12px 16px;font-size:13px;color:var(--text)">
+            ✅ 已选择业务线：<strong style="color:var(--ai-color)">裂变拉新业务线</strong><br>
+            <span style="color:var(--text2);font-size:12px">请告诉我你想查询什么数据？</span>
+          </div>
+        </div>
       </div>
     </div>
-    <div class="game-chg" style="color:#dc2626">-28.1%
-      <div class="game-chg-sub">1542.4 → 1108.8</div>
-    </div>
-  </div>
-  <div class="chart-box" id="chart_1"></div>
-  <div class="game-analysis">变更前一周日均 1542.4（处于月内高位），变更后日均 1108.8，下降 434（-28.1%）。5月上旬该游戏处于爬坡期，前一周口径才能反映真实基准。JP站点PayPay可选机制虽同日上线，但5天观察窗口内未能抵消US分控影响，需持续跟踪JP站点增量。</div>
-</div>
 
-<div class="game-block">
-  <div class="game-header">
-    <div class="game-title-wrap">
-      <span class="game-icon">📉</span>
-      <div>
-        <div class="game-title">FREE ITEM - 砍一刀</div>
-        <div class="game-meta">game_type: 28 &nbsp;·&nbsp; 前一周日均：774.0</div>
+  <!-- ─── TURN 1: 类目分布 ─── -->
+  <div class="section-label"><span>// 需求一 · 拼团订单类目分布</span></div>
+
+    <div class="turn fade-in">
+      <div class="msg-user">
+        <div class="avatar av-user">我</div>
+        <div class="bubble-user">
+          给到我拼团近7天订单的类目分布，需要<strong>团长 / 团员 / 汇总</strong>的数据
+        </div>
+      </div>
+
+      <div class="msg-ai" style="margin-top:14px">
+        <div class="avatar av-ai">AI</div>
+        <div class="ai-content">
+          <div class="ai-header">
+            <span class="ai-name">Claude · 正在处理</span>
+            <span class="ai-thinking"><span class="think-dot"></span> 加载 8 份参考资料 · 确认口径</span>
+          </div>
+
+          <!-- 资料加载 -->
+          <div class="proc-card open">
+            <div class="proc-head" onclick="tog(this)">
+              <div class="proc-icon pi-b">📚</div>
+              <div class="proc-head-text">
+                <h4>资料加载 & 口径确认</h4>
+                <p>公共规范 × 3 + 业务线专属 × 5</p>
+              </div>
+              <span class="proc-badge pb-ok">✓ 8 份</span>
+              <span class="chevron">›</span>
+            </div>
+            <div class="proc-body">
+              <div class="flist">
+                <div class="fitem"><span>📄</span><span class="fitem-name">hive-sql-spec.md</span><span class="fitem-desc">订单父子结构规则 · 漏斗口径规则</span><span style="color:var(--ai-color)">✓</span></div>
+                <div class="fitem"><span>📄</span><span class="fitem-name">data-quality-rules.md</span><span class="fitem-desc">测试用户过滤 · is_valid 过滤</span><span style="color:var(--ai-color)">✓</span></div>
+                <div class="fitem"><span>📄</span><span class="fitem-name">metric-definitions.md</span><span class="fitem-desc">指标口径权威来源</span><span style="color:var(--ai-color)">✓</span></div>
+                <div class="fitem"><span>🔵</span><span class="fitem-name">data-dictionary.md</span><span class="fitem-desc">命中: dw_mkt_group_buy_member_h · fa_pl_skc_df_new</span><span style="color:var(--ai-color)">✓ 命中</span></div>
+                <div class="fitem"><span>🔵</span><span class="fitem-name">common-sql-templates.md</span><span class="fitem-desc">模板4: 以团长为核心圈定有效团 (line 2325)</span><span style="color:var(--amber2)">✓ 复用</span></div>
+              </div>
+
+              <div style="margin-top:14px">
+                <div style="font-family:var(--mono);font-size:10px;color:var(--text3);margin-bottom:8px;letter-spacing:.08em;text-transform:uppercase">// 关键字段确认</div>
+                <div class="kvgrid" style="grid-template-columns:repeat(2,1fr)">
+                  <div class="kvcell">
+                    <div class="kvcell-k">团长/团员身份</div>
+                    <div class="kvcell-v" style="font-size:11px"><code>member_role</code> 1=团长 2=团员</div>
+                  </div>
+                  <div class="kvcell">
+                    <div class="kvcell-k">一级类目</div>
+                    <div class="kvcell-v" style="font-size:11px"><code>sku_cate_1_nm</code> fa_pl_skc_df_new</div>
+                  </div>
+                  <div class="kvcell">
+                    <div class="kvcell-k">表关联键</div>
+                    <div class="kvcell-v" style="font-size:11px"><code>bill_no → order_no</code></div>
+                  </div>
+                  <div class="kvcell">
+                    <div class="kvcell-k">时间过滤</div>
+                    <div class="kvcell-v" style="font-size:11px"><code>create_time</code> 近7天</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- SQL输出 -->
+          <div class="proc-card open">
+            <div class="proc-head" onclick="tog(this)">
+              <div class="proc-icon pi-g">⚡</div>
+              <div class="proc-head-text">
+                <h4>生成 SQL · 校验通过</h4>
+                <p>6 个 CTE · 团长/团员/汇总 UNION ALL</p>
+              </div>
+              <span class="proc-badge pb-ok">✓ 校验通过</span>
+              <span class="chevron">›</span>
+            </div>
+            <div class="proc-body">
+              <div class="vblock">
+                <div class="vhead">sql-validator.py V3.1 · /tmp/temp-sql.sql</div>
+                <div class="vrow">
+                  <span class="vtag vtag-warn">WARN</span>
+                  <span class="vmsg">建议过滤测试用户: member_id NOT IN (dim.dim_test_users) — 该表未入数据字典，已跳过</span>
+                </div>
+                <div class="vrow" style="background:rgba(34,211,160,.03)">
+                  <span class="vtag vtag-ok">PASS</span>
+                  <span class="vmsg">无 ERROR 错误 · 允许输出</span>
+                </div>
+              </div>
+
+              <div class="sql-output">
+                <div class="sql-tabs">
+                  <button class="stab on" onclick="stab(this,'c1-hive')">🔶 Hive SQL</button>
+                  <button class="stab" onclick="stab(this,'c1-trino')">⚡ Trino SQL</button>
+                </div>
+                <div class="spane on" id="pane-c1-hive">
+                  <div class="codebox">
+                    <div class="codebox-top">
+                      <span class="codebox-eng">ENGINE: Hive · dt='2026060123' 全量分区 · 2026-05-26~2026-06-01</span>
+                      <button class="copybtn" onclick="cp('c1h',this)">📋 复制</button>
+                    </div>
+                    <pre><code id="c1h" class="language-sql">WITH
+-- Step 1: 近7天拼团成员明细（全量分区，以 create_time 过滤近7天）
+group_buy_base AS (
+    SELECT
+         CAST(user_id AS BIGINT)                                               AS member_id
+        ,group_buy_id
+        ,bill_no
+        ,member_role                                                           -- 1=团长 2=团员
+        ,REPLACE(SUBSTR(create_time, 1, 10), '-', '')                         AS order_date
+    FROM dw.dw_mkt_group_buy_member_h
+    WHERE dt = '2026060123'
+      AND LOWER(COALESCE(act_name_en, '')) NOT LIKE '%test%'
+      AND REPLACE(SUBSTR(create_time, 1, 10), '-', '') >= '20260526'
+      AND REPLACE(SUBSTR(create_time, 1, 10), '-', '') <= '20260601'
+),
+-- Step 2: 从利润表获取类目维度（SKC粒度）
+order_cate AS (
+    SELECT
+         order_no
+        ,COALESCE(sku_cate_1_nm, '未知类目')                                   AS cate_1_nm
+        ,COALESCE(sku_cate_2_nm, '未知类目')                                   AS cate_2_nm
+        ,COALESCE(pay_gmv, 0)                                                 AS pay_gmv
+    FROM fa.fa_pl_skc_df_new
+    WHERE dt = '20260601'
+      AND LOWER(site_type) = 'shein'
+),
+-- Step 3: 关联拼团成员与类目
+joined AS (
+    SELECT g.member_role, g.bill_no, c.cate_1_nm, c.cate_2_nm, c.pay_gmv
+    FROM group_buy_base g
+    INNER JOIN order_cate c ON g.bill_no = c.order_no
+),
+-- Step 4-6: 团长 / 团员 / 汇总聚合
+leader_stats AS (
+    SELECT '团长' AS role_name, cate_1_nm,
+           COUNT(DISTINCT bill_no) AS order_cnt,
+           ROUND(SUM(pay_gmv), 2) AS total_gmv
+    FROM joined WHERE member_role = 1 GROUP BY cate_1_nm
+),
+member_stats AS (
+    SELECT '团员' AS role_name, cate_1_nm,
+           COUNT(DISTINCT bill_no) AS order_cnt,
+           ROUND(SUM(pay_gmv), 2) AS total_gmv
+    FROM joined WHERE member_role = 2 GROUP BY cate_1_nm
+),
+total_stats AS (
+    SELECT '汇总' AS role_name, cate_1_nm,
+           COUNT(DISTINCT bill_no) AS order_cnt,
+           ROUND(SUM(pay_gmv), 2) AS total_gmv
+    FROM joined GROUP BY cate_1_nm
+)
+SELECT role_name, cate_1_nm, order_cnt, total_gmv FROM leader_stats
+UNION ALL
+SELECT role_name, cate_1_nm, order_cnt, total_gmv FROM member_stats
+UNION ALL
+SELECT role_name, cate_1_nm, order_cnt, total_gmv FROM total_stats
+ORDER BY role_name, order_cnt DESC;</code></pre>
+                  </div>
+                </div>
+                <div class="spane" id="pane-c1-trino">
+                  <div class="codebox">
+                    <div class="codebox-top">
+                      <span class="codebox-eng">ENGINE: Trino SQL · 唯一改动: CAST(x AS STRING) → CAST(x AS VARCHAR)</span>
+                      <button class="copybtn" onclick="cp('c1t',this)">📋 复制</button>
+                    </div>
+                    <pre><code id="c1t" class="language-sql">-- 执行引擎: Trino SQL（唯一改动：CAST AS STRING → CAST AS VARCHAR）
+WITH
+group_buy_base AS (
+    SELECT
+         CAST(user_id AS BIGINT)                                               AS member_id
+        ,group_buy_id
+        ,bill_no
+        ,member_role
+        ,REPLACE(SUBSTR(create_time, 1, 10), '-', '')                         AS order_date
+    FROM dw.dw_mkt_group_buy_member_h
+    WHERE dt = '2026060123'
+      AND LOWER(COALESCE(act_name_en, '')) NOT LIKE '%test%'
+      AND REPLACE(SUBSTR(create_time, 1, 10), '-', '') >= '20260526'
+      AND REPLACE(SUBSTR(create_time, 1, 10), '-', '') <= '20260601'
+),
+order_cate AS (
+    SELECT
+         order_no
+        ,COALESCE(sku_cate_1_nm, '未知类目')   AS cate_1_nm
+        ,COALESCE(sku_cate_2_nm, '未知类目')   AS cate_2_nm
+        ,COALESCE(pay_gmv, 0)                AS pay_gmv
+    FROM fa.fa_pl_skc_df_new
+    WHERE dt = '20260601' AND LOWER(site_type) = 'shein'
+),
+joined AS (
+    SELECT g.member_role, g.bill_no, c.cate_1_nm, c.cate_2_nm, c.pay_gmv
+    FROM group_buy_base g INNER JOIN order_cate c ON g.bill_no = c.order_no
+),
+leader_stats AS (SELECT '团长' AS role_name, cate_1_nm, COUNT(DISTINCT bill_no) AS order_cnt, ROUND(SUM(pay_gmv),2) AS total_gmv FROM joined WHERE member_role=1 GROUP BY cate_1_nm),
+member_stats AS (SELECT '团员' AS role_name, cate_1_nm, COUNT(DISTINCT bill_no) AS order_cnt, ROUND(SUM(pay_gmv),2) AS total_gmv FROM joined WHERE member_role=2 GROUP BY cate_1_nm),
+total_stats  AS (SELECT '汇总' AS role_name, cate_1_nm, COUNT(DISTINCT bill_no) AS order_cnt, ROUND(SUM(pay_gmv),2) AS total_gmv FROM joined GROUP BY cate_1_nm)
+SELECT role_name, cate_1_nm, order_cnt, total_gmv FROM leader_stats
+UNION ALL SELECT role_name, cate_1_nm, order_cnt, total_gmv FROM member_stats
+UNION ALL SELECT role_name, cate_1_nm, order_cnt, total_gmv FROM total_stats
+ORDER BY role_name, order_cnt DESC;</code></pre>
+                  </div>
+                </div>
+              </div>
+
+              <table class="notes-table" style="margin-top:14px">
+                <thead><tr><th>说明项</th><th>内容</th></tr></thead>
+                <tbody>
+                  <tr><td>GMV 口径</td><td>来自 <code>fa.fa_pl_skc_df_new.pay_gmv</code>，SKC 粒度，SUM 后为订单总 GMV，单位美元</td></tr>
+                  <tr><td>表关联</td><td><code>bill_no → order_no</code> INNER JOIN，未入利润表的订单会被过滤</td></tr>
+                  <tr><td>时间口径</td><td>以 <code>create_time</code> 日期部分过滤，数据字典规定默认以此为准</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
-    <div class="game-chg" style="color:#f97316">-16.3%
-      <div class="game-chg-sub">774.0 → 647.6</div>
-    </div>
-  </div>
-  <div class="chart-box" id="chart_2"></div>
-  <div class="game-analysis">变更前一周日均 774.0，变更后日均 647.6，下降 126（-16.3%）。受US分控拦截策略影响，首单量中等程度下滑。该游戏历史体量稳定，当前降幅在预期范围内（预估影响30~40%，全量影响约16%）。</div>
-</div>
 
-<div class="game-block">
-  <div class="game-header">
-    <div class="game-title-wrap">
-      <span class="game-icon">⚠️</span>
-      <div>
-        <div class="game-title">摇钱树</div>
-        <div class="game-meta">game_type: 90 &nbsp;·&nbsp; 前一周日均：650.3</div>
+  <!-- ─── TURN 2: 每日开团/参团/支付 ─── -->
+  <div class="section-label"><span>// 需求二 · 每日开团参团人数与支付订单</span></div>
+
+    <div class="turn fade-in">
+      <div class="msg-user">
+        <div class="avatar av-user">我</div>
+        <div class="bubble-user">
+          最近7天，拼团的<strong>开团用户数，参团用户数，团长支付订单，团员支付订单</strong>，时间按照团长的开团时间
+        </div>
+      </div>
+
+      <div class="msg-ai" style="margin-top:14px">
+        <div class="avatar av-ai">AI</div>
+        <div class="ai-content">
+          <div class="ai-header">
+            <span class="ai-name">Claude · 推断口径</span>
+            <span class="ai-thinking"><span class="think-dot"></span> 分析时间归因逻辑</span>
+          </div>
+
+          <div class="proc-card open">
+            <div class="proc-head" onclick="tog(this)">
+              <div class="proc-icon pi-a">🧠</div>
+              <div class="proc-head-text">
+                <h4>需求推断 · 无歧义直接执行</h4>
+                <p>时间维度统一归因到团长开团日</p>
+              </div>
+              <span class="proc-badge pb-info">推断成功</span>
+              <span class="chevron">›</span>
+            </div>
+            <div class="proc-body">
+              <div class="kvgrid" style="grid-template-columns:repeat(2,1fr)">
+                <div class="kvcell">
+                  <div class="kvcell-k">开团用户数</div>
+                  <div class="kvcell-v" style="font-size:11px"><code>member_role=1</code> 去重 user_id</div>
+                </div>
+                <div class="kvcell">
+                  <div class="kvcell-k">参团用户数</div>
+                  <div class="kvcell-v" style="font-size:11px"><code>member_role=2</code> → 归因团长日期</div>
+                </div>
+                <div class="kvcell">
+                  <div class="kvcell-k">团长支付订单</div>
+                  <div class="kvcell-v" style="font-size:11px">团长 <code>bill_no IS NOT NULL</code></div>
+                </div>
+                <div class="kvcell">
+                  <div class="kvcell-k">时间归因策略</div>
+                  <div class="kvcell-v g" style="font-size:11px">全部按团长 create_time</div>
+                </div>
+              </div>
+              <p class="prose" style="margin-top:10px">
+                团员没有独立时间轴，通过 <code>group_buy_id</code> 关联到团长开团日，确保 4 个指标在同一时间维度下对齐。
+              </p>
+            </div>
+          </div>
+
+          <div class="proc-card open">
+            <div class="proc-head" onclick="tog(this)">
+              <div class="proc-icon pi-g">⚡</div>
+              <div class="proc-head-text">
+                <h4>生成 SQL · 每日聚合</h4>
+                <p>5 个 CTE · 日粒度输出</p>
+              </div>
+              <span class="proc-badge pb-ok">✓ 校验通过</span>
+              <span class="chevron">›</span>
+            </div>
+            <div class="proc-body">
+              <div class="sql-output">
+                <div class="sql-tabs">
+                  <button class="stab on" onclick="stab(this,'c2-hive')">🔶 Hive SQL</button>
+                </div>
+                <div class="spane on" id="pane-c2-hive">
+                  <div class="codebox">
+                    <div class="codebox-top">
+                      <span class="codebox-eng">ENGINE: Hive · 2026-05-26~2026-06-01 · 日粒度</span>
+                      <button class="copybtn" onclick="cp('c2h',this)">📋 复制</button>
+                    </div>
+                    <pre><code id="c2h" class="language-sql">WITH
+-- Step 1: 圈定近7天开团团长（时间基准）
+leader_base AS (
+    SELECT
+         REPLACE(SUBSTR(create_time, 1, 10), '-', '')  AS open_dt
+        ,CAST(user_id AS BIGINT)                        AS leader_user_id
+        ,group_buy_id
+        ,bill_no                                        AS leader_bill_no
+    FROM dw.dw_mkt_group_buy_member_h
+    WHERE dt = '2026060123'
+      AND member_role = 1
+      AND LOWER(COALESCE(act_name_en, '')) NOT LIKE '%test%'
+      AND REPLACE(SUBSTR(create_time, 1, 10), '-', '') >= '20260526'
+      AND REPLACE(SUBSTR(create_time, 1, 10), '-', '') <= '20260601'
+),
+-- Step 2: 全量团员（时间归因到其所在团的团长开团日）
+member_raw AS (
+    SELECT CAST(user_id AS BIGINT) AS member_user_id, group_buy_id, bill_no AS member_bill_no
+    FROM dw.dw_mkt_group_buy_member_h
+    WHERE dt = '2026060123' AND member_role = 2
+),
+-- Step 3: 团员挂载到团长开团日期
+member_base AS (
+    SELECT l.open_dt, m.member_user_id, m.member_bill_no
+    FROM leader_base l LEFT JOIN member_raw m ON l.group_buy_id = m.group_buy_id
+),
+-- Step 4: 团长维度聚合
+leader_stats AS (
+    SELECT open_dt,
+           COUNT(DISTINCT leader_user_id) AS open_user_cnt,
+           COUNT(DISTINCT leader_bill_no) AS leader_order_cnt
+    FROM leader_base GROUP BY open_dt
+),
+-- Step 5: 团员维度聚合
+member_stats AS (
+    SELECT open_dt,
+           COUNT(DISTINCT member_user_id) AS join_user_cnt,
+           COUNT(DISTINCT member_bill_no) AS member_order_cnt
+    FROM member_base GROUP BY open_dt
+)
+-- 最终输出
+SELECT
+     l.open_dt
+    ,l.open_user_cnt                                    -- 开团用户数
+    ,COALESCE(m.join_user_cnt,    0) AS join_user_cnt   -- 参团用户数
+    ,l.leader_order_cnt                                 -- 团长支付订单
+    ,COALESCE(m.member_order_cnt, 0) AS member_order_cnt -- 团员支付订单
+FROM leader_stats l LEFT JOIN member_stats m ON l.open_dt = m.open_dt
+ORDER BY l.open_dt ASC;</code></pre>
+                  </div>
+                </div>
+              </div>
+
+              <table class="notes-table" style="margin-top:14px">
+                <thead><tr><th>说明项</th><th>内容</th></tr></thead>
+                <tbody>
+                  <tr><td>时间归因</td><td>4 个指标全部归因到团长 <code>create_time</code> 日期，数据字典明确规定「默认以团长开团时间为准」</td></tr>
+                  <tr><td>支付口径</td><td><code>COUNT(DISTINCT bill_no)</code>，NULL 自动排除，不限制 bill_status（依数据字典规则）</td></tr>
+                  <tr><td>全量分区</td><td>取 <code>dt='2026060123'</code> 单分区，覆盖所有历史数据，无需多分区扫描</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
-    <div class="game-chg" style="color:#f97316">-14.9%
-      <div class="game-chg-sub">650.3 → 553.2</div>
-    </div>
-  </div>
-  <div class="chart-box" id="chart_3"></div>
-  <div class="game-analysis">变更前一周日均 650.3，变更后日均 553.2，下降 97（-14.9%）。降幅相对温和，推测该游戏US占比低于拉新返佣等游戏，或有效用户质量更高不在拦截范围内。短期可作为US分控影响的对照参考。</div>
-</div>
 
-<div class="game-block">
-  <div class="game-header">
-    <div class="game-title-wrap">
-      <span class="game-icon">⚠️</span>
-      <div>
-        <div class="game-title">新养成游戏（进度）</div>
-        <div class="game-meta">game_type: 89 &nbsp;·&nbsp; 前一周日均：196.0</div>
+  <!-- ─── TURN 3: 漏斗 ─── -->
+  <div class="section-label"><span>// 需求三 · 访问→点击→加购→支付 漏斗</span></div>
+
+    <div class="turn fade-in">
+      <div class="msg-user">
+        <div class="avatar av-user">我</div>
+        <div class="bubble-user">
+          最近7天，拼团游戏，<strong>开团用户访问、商品点击、商品加购到支付</strong>的漏斗 SQL
+        </div>
+      </div>
+
+      <div class="msg-ai" style="margin-top:14px">
+        <div class="avatar av-ai">AI</div>
+        <div class="ai-content">
+          <div class="ai-header">
+            <span class="ai-name">Claude · 漏斗口径推断</span>
+            <span class="ai-thinking"><span class="think-dot"></span> 检索埋点字段定义</span>
+          </div>
+
+          <!-- 漏斗链 -->
+          <div class="proc-card open">
+            <div class="proc-head" onclick="tog(this)">
+              <div class="proc-icon pi-v">🔍</div>
+              <div class="proc-head-text">
+                <h4>漏斗链推断 · 4 步全部确认</h4>
+                <p>game_type=106 · 同日口径 · 严格 INNER JOIN</p>
+              </div>
+              <span class="proc-badge pb-ok">✓ 无歧义</span>
+              <span class="chevron">›</span>
+            </div>
+            <div class="proc-body">
+              <div class="funnel">
+                <div class="funnel-step fs1">
+                  <span class="fs-num">Step 1</span>
+                  <span class="fs-name">访问游戏主页 UV</span>
+                  <span class="fs-meta"><code>dw_ssa_ug_game_page_vst_di</code><br>game_type=106 · page_type='2'</span>
+                </div>
+                <div class="fs-arrow">⬇ INNER JOIN member_id + dt</div>
+                <div class="funnel-step fs2">
+                  <span class="fs-num">Step 2</span>
+                  <span class="fs-name">商品点击 UV</span>
+                  <span class="fs-meta"><code>dw_ssa_ug_game_elmt_clk_di</code><br>button_type='250'</span>
+                </div>
+                <div class="fs-arrow">⬇ INNER JOIN member_id + dt</div>
+                <div class="funnel-step fs3">
+                  <span class="fs-num">Step 3</span>
+                  <span class="fs-name">商品加购 UV</span>
+                  <span class="fs-meta"><code>dw_ssa_ug_game_elmt_clk_di</code><br>button_type='50'</span>
+                </div>
+                <div class="fs-arrow">⬇ INNER JOIN member_id + dt</div>
+                <div class="funnel-step fs4">
+                  <span class="fs-num">Step 4</span>
+                  <span class="fs-name">支付开团 UV</span>
+                  <span class="fs-meta"><code>dw_mkt_group_buy_member_h</code><br>member_role=1 · bill_no IS NOT NULL</span>
+                </div>
+              </div>
+
+              <div class="wbanner">
+                <span class="wbanner-icon">⚠️</span>
+                <div>
+                  <div class="wbanner-title">漏斗设计原则 — 严格追踪同一批人</div>
+                  <div class="wbanner-body">每一步都 INNER JOIN 上一步的明细 CTE，只保留「经历了上一步」的用户，绝不独立过滤，避免漏斗断层。</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- SQL -->
+          <div class="proc-card open">
+            <div class="proc-head" onclick="tog(this)">
+              <div class="proc-icon pi-g">⚡</div>
+              <div class="proc-head-text">
+                <h4>生成漏斗 SQL · 含转化率计算</h4>
+                <p>8 个 CTE · 逐层转化率 + 总转化率</p>
+              </div>
+              <span class="proc-badge pb-ok">✓ 校验通过</span>
+              <span class="chevron">›</span>
+            </div>
+            <div class="proc-body">
+              <div class="codebox">
+                <div class="codebox-top">
+                  <span class="codebox-eng">ENGINE: Hive · game_type=106 · 同日漏斗 · 2026-05-26~2026-06-01</span>
+                  <button class="copybtn" onclick="cp('c3h',this)">📋 复制</button>
+                </div>
+                <pre><code id="c3h" class="language-sql">WITH
+-- Step 1 基准: 访问拼团主页的已登录用户
+vst_base AS (
+    SELECT dt AS open_dt, CAST(member_id AS BIGINT) AS member_id
+    FROM dw.dw_ssa_ug_game_page_vst_di
+    WHERE dt >= '20260526' AND dt <= '20260601'
+      AND game_type = 106
+      AND page_type IN ('2')           -- 拼团主页/列表页
+      AND site_tp = 'shein'
+      AND login_flag = '1'             -- 仅登录用户
+      AND env = 'production'
+    GROUP BY dt, CAST(member_id AS BIGINT)
+),
+vst_cnt AS (SELECT open_dt, COUNT(DISTINCT member_id) AS vst_uv FROM vst_base GROUP BY open_dt),
+
+-- Step 2: 访问用户中有商品点击的用户（button_type='250'）
+click_base AS (
+    SELECT c.dt AS open_dt, CAST(c.member_id AS BIGINT) AS member_id
+    FROM dw.dw_ssa_ug_game_elmt_clk_di c
+    INNER JOIN vst_base v ON CAST(c.member_id AS BIGINT) = v.member_id AND c.dt = v.open_dt
+    WHERE c.dt >= '20260526' AND c.dt <= '20260601'
+      AND c.game_type IN (106,'106') AND c.page_type IN ('2')
+      AND c.activity_nm = 'click_game_button' AND c.button_type = '250'
+      AND c.site_tp = 'shein'
+    GROUP BY c.dt, CAST(c.member_id AS BIGINT)
+),
+click_cnt AS (SELECT open_dt, COUNT(DISTINCT member_id) AS click_uv FROM click_base GROUP BY open_dt),
+
+-- Step 3: 商品点击用户中有加购行为的用户（button_type='50'）
+cart_base AS (
+    SELECT c.dt AS open_dt, CAST(c.member_id AS BIGINT) AS member_id
+    FROM dw.dw_ssa_ug_game_elmt_clk_di c
+    INNER JOIN click_base cl ON CAST(c.member_id AS BIGINT) = cl.member_id AND c.dt = cl.open_dt
+    WHERE c.dt >= '20260526' AND c.dt <= '20260601'
+      AND c.game_type IN (106,'106') AND c.button_type = '50'
+      AND c.activity_nm = 'click_game_button' AND c.site_tp = 'shein'
+    GROUP BY c.dt, CAST(c.member_id AS BIGINT)
+),
+cart_cnt AS (SELECT open_dt, COUNT(DISTINCT member_id) AS cart_uv FROM cart_base GROUP BY open_dt),
+
+-- Step 4: 加购用户中完成支付开团的团长
+pay_base AS (
+    SELECT cb.open_dt, cb.member_id FROM cart_base cb
+    INNER JOIN (
+        SELECT CAST(user_id AS BIGINT) AS member_id,
+               REPLACE(SUBSTR(create_time, 1, 10), '-', '') AS pay_dt
+        FROM dw.dw_mkt_group_buy_member_h
+        WHERE dt = '2026060123' AND member_role = 1 AND bill_no IS NOT NULL
+          AND LOWER(COALESCE(act_name_en, '')) NOT LIKE '%test%'
+          AND REPLACE(SUBSTR(create_time, 1, 10), '-', '') >= '20260526'
+          AND REPLACE(SUBSTR(create_time, 1, 10), '-', '') <= '20260601'
+    ) pay ON cb.member_id = pay.member_id AND cb.open_dt = pay.pay_dt
+),
+pay_cnt AS (SELECT open_dt, COUNT(DISTINCT member_id) AS pay_uv FROM pay_base GROUP BY open_dt)
+
+-- 最终输出: 各步骤 UV + 逐层转化率
+SELECT
+     vc.open_dt
+    ,vc.vst_uv                                                               -- Step1 访问 UV
+    ,COALESCE(cc.click_uv, 0)                                                AS click_uv
+    ,COALESCE(ca.cart_uv,  0)                                                AS cart_uv
+    ,COALESCE(pc.pay_uv,   0)                                                AS pay_uv
+    ,ROUND(COALESCE(cc.click_uv,0) / NULLIF(vc.vst_uv,   0) * 100, 2)      AS click_cvr   -- 访问→点击 %
+    ,ROUND(COALESCE(ca.cart_uv, 0) / NULLIF(cc.click_uv, 0) * 100, 2)      AS cart_cvr    -- 点击→加购 %
+    ,ROUND(COALESCE(pc.pay_uv,  0) / NULLIF(ca.cart_uv,  0) * 100, 2)      AS pay_cvr     -- 加购→支付 %
+    ,ROUND(COALESCE(pc.pay_uv,  0) / NULLIF(vc.vst_uv,   0) * 100, 2)      AS overall_cvr -- 总转化率 %
+FROM vst_cnt vc
+LEFT JOIN click_cnt cc ON vc.open_dt = cc.open_dt
+LEFT JOIN cart_cnt  ca ON vc.open_dt = ca.open_dt
+LEFT JOIN pay_cnt   pc ON vc.open_dt = pc.open_dt
+ORDER BY vc.open_dt ASC;</code></pre>
+              </div>
+
+              <table class="notes-table" style="margin-top:14px">
+                <thead><tr><th>说明项</th><th>内容</th></tr></thead>
+                <tbody>
+                  <tr><td>漏斗口径</td><td>严格 INNER JOIN 追踪同一批用户，每步只保留经历上一步的人，避免漏斗断层</td></tr>
+                  <tr><td>时间窗口</td><td>同日漏斗（访问/点击/加购/支付在同一 dt 内），如需跨日需修改 JOIN 条件</td></tr>
+                  <tr><td>访问口径</td><td><code>page_type='2'</code> = 拼团主页/列表页（数据字典明确）</td></tr>
+                  <tr><td>点击/加购</td><td>点击 <code>button_type='250'</code>，加购 <code>button_type='50'</code>（数据字典明确）</td></tr>
+                  <tr><td>支付口径</td><td>取拼团快照表团长且 <code>bill_no IS NOT NULL</code></td></tr>
+                </tbody>
+              </table>
+
+              <div class="wbanner" style="margin-top:12px">
+                <span class="wbanner-icon">⚠️</span>
+                <div>
+                  <div class="wbanner-title">业务变更提醒 · 2026-05-27 US站</div>
+                  <div class="wbanner-body">US 站点新增分控拦截策略，支付层预计下降 30%–40%，查看 5/27 前后数据时请结合此背景解读，避免误判为漏斗优化效果。</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
       </div>
     </div>
-    <div class="game-chg" style="color:#f97316">-8.4%
-      <div class="game-chg-sub">196.0 → 179.6</div>
+
+  </div> <!-- end chat -->
+
+  <!-- ── SUMMARY ── -->
+  <div class="section-label"><span>// 能力总结</span></div>
+
+  <div class="fade-in" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:12px">
+    <div style="background:var(--surface);border:1px solid var(--border);border-top:2px solid var(--user-color);border-radius:10px;padding:18px 20px">
+      <div style="font-size:22px;margin-bottom:8px">🎯</div>
+      <div style="font-size:13px;font-weight:600;color:#fff;margin-bottom:6px">口径自查</div>
+      <div style="font-size:12px;color:var(--text2);line-height:1.7">所有指标自动在 metric-definitions.md 中比对，不确定才问，有歧义才提醒</div>
+    </div>
+    <div style="background:var(--surface);border:1px solid var(--border);border-top:2px solid var(--ai-color);border-radius:10px;padding:18px 20px">
+      <div style="font-size:22px;margin-bottom:8px">📚</div>
+      <div style="font-size:13px;font-weight:600;color:#fff;margin-bottom:6px">字典驱动</div>
+      <div style="font-size:12px;color:var(--text2);line-height:1.7">表名、字段名、关联键全部来自数据字典，绝不编造，字典外的无法查询会明确告知</div>
+    </div>
+    <div style="background:var(--surface);border:1px solid var(--border);border-top:2px solid var(--amber);border-radius:10px;padding:18px 20px">
+      <div style="font-size:22px;margin-bottom:8px">✅</div>
+      <div style="font-size:13px;font-weight:600;color:#fff;margin-bottom:6px">自动校验</div>
+      <div style="font-size:12px;color:var(--text2);line-height:1.7">每次生成后自动运行 sql-validator.py，校验不通过绝不输出，发现问题自动修正</div>
     </div>
   </div>
-  <div class="chart-box" id="chart_4"></div>
-  <div class="game-analysis">变更前一周日均 196.0，变更后日均 179.6，下降 16（-8.4%）。降幅仅 8.4%，是受影响最小的核心游戏之一，具备一定的站点分布多元化特征。可进一步分析其非US站点贡献占比，评估抗风险能力。</div>
-</div>
 
-<div class="game-block">
-  <div class="game-header">
-    <div class="game-title-wrap">
-      <span class="game-icon">📉</span>
-      <div>
-        <div class="game-title">JACKPOT QUEST</div>
-        <div class="game-meta">game_type: 101 &nbsp;·&nbsp; 前一周日均：145.0</div>
-      </div>
+  <div class="fade-in" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px">
+    <div style="background:var(--surface);border:1px solid var(--border);border-top:2px solid var(--blue);border-radius:10px;padding:18px 20px">
+      <div style="font-size:22px;margin-bottom:8px">⚡</div>
+      <div style="font-size:13px;font-weight:600;color:#fff;margin-bottom:6px">方言转换</div>
+      <div style="font-size:12px;color:var(--text2);line-height:1.7">一键转 Trino / Spark，按规则逐条检查，转换后再次校验才输出</div>
     </div>
-    <div class="game-chg" style="color:#dc2626">-22.2%
-      <div class="game-chg-sub">145.0 → 112.8</div>
+    <div style="background:var(--surface);border:1px solid var(--border);border-top:2px solid var(--warn);border-radius:10px;padding:18px 20px">
+      <div style="font-size:22px;margin-bottom:8px">📋</div>
+      <div style="font-size:13px;font-weight:600;color:#fff;margin-bottom:6px">变更感知</div>
+      <div style="font-size:12px;color:var(--text2);line-height:1.7">自动加载 business-policy-log.md，查询时间范围内有业务变更会自动提醒，避免数据误读</div>
+    </div>
+    <div style="background:var(--surface);border:1px solid var(--border);border-top:2px solid var(--user-color);border-radius:10px;padding:18px 20px">
+      <div style="font-size:22px;margin-bottom:8px">🔗</div>
+      <div style="font-size:13px;font-weight:600;color:#fff;margin-bottom:6px">多业务线</div>
+      <div style="font-size:12px;color:var(--text2);line-height:1.7">裂变拉新 / 新客转化 / 商品上架，各自独立数据字典和指标体系，互不干扰</div>
     </div>
   </div>
-  <div class="chart-box" id="chart_5"></div>
-  <div class="game-analysis">变更前一周日均 145.0，变更后日均 112.8，下降 32（-22.2%）。降幅 22.2%，与整体趋势一致。该游戏名称为英文，用户群体可能以US/CA等英语市场为主，因此US分控影响较为集中。</div>
+
 </div>
 
-<div class="game-block">
-  <div class="game-header">
-    <div class="game-title-wrap">
-      <span class="game-icon">📈</span>
-      <div>
-        <div class="game-title">FI小团极简</div>
-        <div class="game-meta">game_type: 102 &nbsp;·&nbsp; 前一周日均：92.6</div>
-      </div>
-    </div>
-    <div class="game-chg" style="color:#059669">+1.9%
-      <div class="game-chg-sub">92.6 → 94.4</div>
-    </div>
-  </div>
-  <div class="chart-box" id="chart_6"></div>
-  <div class="game-analysis">变更前一周日均 92.6，变更后日均 94.4，变化 +1.9%，基本持平。是9个核心游戏中受影响最小的游戏，推测与其主要运营的站点分布有关（非US为主）。可作为基准对比游戏，辅助判断US分控策略的实际影响边界。</div>
-</div>
-
-<div class="game-block">
-  <div class="game-header">
-    <div class="game-title-wrap">
-      <span class="game-icon">⚠️</span>
-      <div>
-        <div class="game-title">摇钱树阶段发奖版</div>
-        <div class="game-meta">game_type: 103 &nbsp;·&nbsp; 前一周日均：86.3</div>
-      </div>
-    </div>
-    <div class="game-chg" style="color:#f97316">-2.2%
-      <div class="game-chg-sub">86.3 → 84.4</div>
-    </div>
-  </div>
-  <div class="chart-box" id="chart_7"></div>
-  <div class="game-analysis">变更前一周日均 86.3，变更后日均 84.4，变化 -2.2%，基本持平。与FI小团极简类似，受分控影响极小，整体首单量稳定。短期无需特别关注，建议结合6月数据观察其长期走势。</div>
-</div>
-
-<div class="game-block">
-  <div class="game-header">
-    <div class="game-title-wrap">
-      <span class="game-icon">📈</span>
-      <div>
-        <div class="game-title">GROUPBUY</div>
-        <div class="game-meta">game_type: GROUPBUY &nbsp;·&nbsp; 前一周日均：55.6</div>
-      </div>
-    </div>
-    <div class="game-chg" style="color:#059669">+30.6%
-      <div class="game-chg-sub">55.6 → 72.6</div>
-    </div>
-  </div>
-  <div class="chart-box" id="chart_8"></div>
-  <div class="game-analysis">变更前一周日均 55.6，变更后日均 72.6，增加 17（+30.6%）。是9个核心游戏中唯一实现明显增长的游戏，增长可能来自KR站点Naver本地化权益的拉动效果。绝对量仍相对较小，建议密切关注后续5-10天的持续性，排除短期脉冲可能。</div>
-</div>
-</div>
-
-<footer>报告生成时间：2026-06-01 &nbsp;·&nbsp; 数据来源：最近30日各游戏拉新首单数.xlsx &nbsp;·&nbsp; 裂变拉新业务线</footer>
+<!-- FOOTER -->
+<footer>
+  <div class="foot-brand">Shein · <em>Write-SQL Plugin</em> · 用增数据团队</div>
+  <div class="foot-meta">演示时间: 2026-06-02<br>数据范围: 2026-05-26 ~ 2026-06-01</div>
+</footer>
 
 <script>
-var D = {"fmt_dates": ["05/02", "05/03", "05/04", "05/05", "05/06", "05/07", "05/08", "05/09", "05/10", "05/11", "05/12", "05/13", "05/14", "05/15", "05/16", "05/17", "05/18", "05/19", "05/20", "05/21", "05/22", "05/23", "05/24", "05/25", "05/26", "05/27", "05/28", "05/29", "05/30", "05/31"], "change_idx": 25, "daily_total": [5127, 5330, 5060, 4808, 5309, 4885, 5051, 5018, 4942, 4442, 5572, 6034, 6286, 6355, 6272, 6170, 6089, 5679, 5870, 6197, 6423, 6298, 6249, 6316, 6372, 5356, 4706, 4755, 4732, 4816], "pre7_avg_tot": 6246.4, "post_avg_tot": 4873.0, "total_chg": -22.0, "core": [{"gt": "205", "name": "拉新返佣", "pre_avg": 2660.6, "post_avg": 1973.8, "chg": -25.8, "series": [2610, 2650, 2297, 2053, 2116, 2176, 2348, 2234, 2207, 1883, 2523, 2718, 2706, 2773, 2727, 2808, 2476, 2236, 2370, 2528, 2709, 2769, 2789, 2681, 2778, 2228, 1840, 1924, 1859, 2018], "analysis": "变更前一周日均 2660.6，变更后日均 1973.8，下降 687（-25.8%）。作为规模最大的拉新游戏，US站点分控拦截策略对其影响最为显著。建议拆分US与非US站点数据进行归因，评估分控策略的实际波及范围。"}, {"gt": "104", "name": "翻牌4.0", "pre_avg": 1542.4, "post_avg": 1108.8, "chg": -28.1, "series": [231, 400, 345, 309, 374, 293, 388, 474, 653, 567, 664, 943, 1208, 1259, 1334, 1131, 1411, 1278, 1410, 1611, 1682, 1544, 1470, 1511, 1569, 1337, 1061, 1094, 1068, 984], "analysis": "变更前一周日均 1542.4（处于月内高位），变更后日均 1108.8，下降 434（-28.1%）。5月上旬该游戏处于爬坡期，前一周口径才能反映真实基准。JP站点PayPay可选机制虽同日上线，但5天观察窗口内未能抵消US分控影响，需持续跟踪JP站点增量。"}, {"gt": "28", "name": "FREE ITEM - 砍一刀", "pre_avg": 774.0, "post_avg": 647.6, "chg": -16.3, "series": [793, 803, 827, 875, 1168, 844, 795, 787, 688, 585, 822, 871, 874, 859, 854, 769, 776, 746, 775, 730, 733, 776, 750, 817, 837, 655, 625, 617, 670, 671], "analysis": "变更前一周日均 774.0，变更后日均 647.6，下降 126（-16.3%）。受US分控拦截策略影响，首单量中等程度下滑。该游戏历史体量稳定，当前降幅在预期范围内（预估影响30~40%，全量影响约16%）。"}, {"gt": "90", "name": "摇钱树", "pre_avg": 650.3, "post_avg": 553.2, "chg": -14.9, "series": [762, 694, 780, 823, 872, 847, 813, 752, 675, 702, 714, 746, 691, 715, 667, 680, 672, 646, 604, 654, 698, 633, 627, 708, 628, 575, 565, 543, 553, 530], "analysis": "变更前一周日均 650.3，变更后日均 553.2，下降 97（-14.9%）。降幅相对温和，推测该游戏US占比低于拉新返佣等游戏，或有效用户质量更高不在拦截范围内。短期可作为US分控影响的对照参考。"}, {"gt": "89", "name": "新养成游戏（进度）", "pre_avg": 196.0, "post_avg": 179.6, "chg": -8.4, "series": [245, 273, 253, 220, 215, 263, 244, 219, 200, 212, 207, 265, 208, 223, 225, 253, 208, 203, 225, 232, 204, 189, 179, 168, 175, 182, 184, 191, 157, 184], "analysis": "变更前一周日均 196.0，变更后日均 179.6，下降 16（-8.4%）。降幅仅 8.4%，是受影响最小的核心游戏之一，具备一定的站点分布多元化特征。可进一步分析其非US站点贡献占比，评估抗风险能力。"}, {"gt": "101", "name": "JACKPOT QUEST", "pre_avg": 145.0, "post_avg": 112.8, "chg": -22.2, "series": [175, 165, 205, 183, 184, 176, 200, 233, 202, 168, 252, 204, 285, 202, 203, 201, 220, 306, 222, 180, 129, 108, 150, 123, 103, 120, 122, 105, 122, 95], "analysis": "变更前一周日均 145.0，变更后日均 112.8，下降 32（-22.2%）。降幅 22.2%，与整体趋势一致。该游戏名称为英文，用户群体可能以US/CA等英语市场为主，因此US分控影响较为集中。"}, {"gt": "102", "name": "FI小团极简", "pre_avg": 92.6, "post_avg": 94.4, "chg": 1.9, "series": [132, 178, 178, 183, 216, 122, 117, 138, 170, 164, 213, 131, 131, 128, 114, 149, 142, 109, 109, 96, 96, 96, 87, 89, 75, 71, 81, 79, 97, 144], "analysis": "变更前一周日均 92.6，变更后日均 94.4，变化 +1.9%，基本持平。是9个核心游戏中受影响最小的游戏，推测与其主要运营的站点分布有关（非US为主）。可作为基准对比游戏，辅助判断US分控策略的实际影响边界。"}, {"gt": "103", "name": "摇钱树阶段发奖版", "pre_avg": 86.3, "post_avg": 84.4, "chg": -2.2, "series": [107, 90, 97, 88, 92, 71, 82, 94, 74, 78, 92, 72, 83, 92, 86, 88, 87, 79, 83, 82, 76, 100, 77, 103, 83, 86, 94, 96, 82, 64], "analysis": "变更前一周日均 86.3，变更后日均 84.4，变化 -2.2%，基本持平。与FI小团极简类似，受分控影响极小，整体首单量稳定。短期无需特别关注，建议结合6月数据观察其长期走势。"}, {"gt": "GROUPBUY", "name": "GROUPBUY", "pre_avg": 55.6, "post_avg": 72.6, "chg": 30.6, "series": [10, 19, 19, 14, 15, 23, 13, 21, 23, 27, 24, 33, 26, 33, 19, 26, 35, 27, 25, 34, 49, 51, 62, 80, 88, 61, 87, 61, 71, 83], "analysis": "变更前一周日均 55.6，变更后日均 72.6，增加 17（+30.6%）。是9个核心游戏中唯一实现明显增长的游戏，增长可能来自KR站点Naver本地化权益的拉动效果。绝对量仍相对较小，建议密切关注后续5-10天的持续性，排除短期脉冲可能。"}], "pre7_label": "05/20~05/26（前一周）", "post_label": "05/27~05/31（变更后）"};
-
-// ── KPI Cards ──
-var kpis = [
-  {label:'全游戏变更前一周日均', value: D.pre7_avg_tot.toLocaleString(), delta:'', color:'#3b82f6'},
-  {label:'全游戏变更后日均', value: D.post_avg_tot.toLocaleString(),
-   delta:(D.total_chg>0?'+':'')+D.total_chg+'%', pos:D.total_chg>0,
-   color:D.total_chg>=0?'#10b981':'#ef4444'},
-  {label:'核心游戏数（日均>50）', value: D.core.length, delta:'', color:'#8b5cf6'},
-  {label:'下滑超20%游戏数', value: D.core.filter(function(g){return g.chg<=-20}).length,
-   delta:'需重点关注', pos:false, color:'#ef4444'},
-  {label:'正增长或持平游戏', value: D.core.filter(function(g){return g.chg>-5}).length,
-   delta:'相对稳健', pos:true, color:'#10b981'},
-];
-var kpiEl = document.getElementById('kpi-grid');
-kpis.forEach(function(k){
-  kpiEl.innerHTML += '<div class="kpi-card" style="--kc:'+k.color+'">'
-    +'<div class="kpi-label">'+k.label+'</div>'
-    +'<div class="kpi-value">'+k.value+'</div>'
-    +(k.delta ? '<div class="kpi-delta '+(k.pos?'d-pos':'d-neg')+'">'+k.delta+'</div>' : '')
-    +'</div>';
-});
-
-window.addEventListener('load', function(){
-
-  // ── Total Trend ──
-  var tc = echarts.init(document.getElementById('chart-total'));
-  tc.setOption({
-    backgroundColor:'transparent',
-    tooltip:{trigger:'axis', formatter:function(p){
-      return p[0].name+'<br/>总首单: <b>'+p[0].value.toLocaleString()+'</b>';
-    }},
-    grid:{top:50,bottom:60,left:70,right:30},
-    xAxis:{type:'category',data:D.fmt_dates,
-      axisLabel:{rotate:45,fontSize:11},
-      axisLine:{lineStyle:{color:'#d1d5db'}},axisTick:{show:false}},
-    yAxis:{type:'value',
-      axisLabel:{formatter:function(v){return v>=1000?(v/1000).toFixed(1)+'k':v}},
-      splitLine:{lineStyle:{color:'#f3f4f6'}}},
-    series:[{
-      type:'line',data:D.daily_total,smooth:true,symbol:'none',
-      lineStyle:{width:2.5,color:'#3b82f6'},
-      areaStyle:{color:{type:'linear',x:0,y:0,x2:0,y2:1,
-        colorStops:[{offset:0,color:'rgba(59,130,246,0.2)'},{offset:1,color:'rgba(59,130,246,0)'}]}},
-      markLine:{silent:true,symbol:['none','none'],
-        data:[{xAxis:D.change_idx,
-          lineStyle:{color:'#ef4444',width:2,type:'dashed'},
-          label:{formatter:'策略变更\n05/27',color:'#ef4444',fontSize:11,fontWeight:'bold',
-                 position:'insideStartTop'}}]}
-    }]
+  // highlight
+  document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('pre code').forEach(el => hljs.highlightElement(el));
   });
-  window.addEventListener('resize',function(){tc.resize()});
 
-  // ── Per-game charts ──
+  // toggle card
+  function tog(head) {
+    head.closest('.proc-card').classList.toggle('open');
+  }
 
-(function(){
-  var dom = document.getElementById('chart_0');
-  if (!dom) return;
-  var chart = echarts.init(dom);
-  chart.setOption({
-    backgroundColor: 'transparent',
-    tooltip: {
-      trigger: 'axis',
-      formatter: function(p){
-        return p[0].name + '<br/><b>' + p[0].value.toLocaleString() + '</b> 首单';
-      }
-    },
-    grid: { top:50, bottom:50, left:64, right:30 },
-    xAxis: {
-      type: 'category',
-      data: D.fmt_dates,
-      axisLabel: { fontSize:11, interval:1, rotate:45 },
-      axisLine: { lineStyle: { color:'#d1d5db' } },
-      axisTick: { show:false }
-    },
-    yAxis: {
-      type: 'value',
-      axisLabel: { fontSize:11 },
-      splitLine: { lineStyle: { color:'#f3f4f6' } }
-    },
-    series: [
-      {
-        type: 'line',
-        data: [2610, 2650, 2297, 2053, 2116, 2176, 2348, 2234, 2207, 1883, 2523, 2718, 2706, 2773, 2727, 2808, 2476, 2236, 2370, 2528, 2709, 2769, 2789, 2681, 2778, 2228, 1840, 1924, 1859, 2018],
-        smooth: true,
-        symbol: 'circle',
-        symbolSize: 4,
-        lineStyle: { width:2.5, color:'#ef4444' },
-        itemStyle: { color:'#ef4444' },
-        areaStyle: { color: { type:'linear',x:0,y:0,x2:0,y2:1,
-          colorStops:[{offset:0,color:'#ef444433'},{offset:1,color:'#ef444400'}] } },
-        markLine: {
-          silent: true,
-          symbol: ['none','none'],
-          data: [
-            {
-              xAxis: D.change_idx,
-              lineStyle: { color:'#ef4444', width:2, type:'dashed' },
-              label: { formatter:'策略变更\n05/27', position:'insideStartTop',
-                        color:'#ef4444', fontSize:11, fontWeight:'bold' }
-            },
-            {
-              yAxis: 2660.6,
-              lineStyle: { color:'#3b82f6', width:1.5, type:'dashed' },
-              label: { formatter:'前一周均值 2660.6', position:'insideEndBottom',
-                        color:'#3b82f6', fontSize:10 }
-            },
-            {
-              yAxis: 1973.8,
-              lineStyle: { color:'#f97316', width:1.5, type:'dashed' },
-              label: { formatter:'变更后均值 1973.8', position:'insideEndTop',
-                        color:'#f97316', fontSize:10 }
-            }
-          ]
-        }
-      }
-    ]
-  });
-  window.addEventListener('resize', function(){ chart.resize(); });
-})();
+  // tab switch
+  function stab(btn, id) {
+    const wrap = btn.closest('.proc-body') || btn.closest('.sql-output');
+    wrap.querySelectorAll('.stab').forEach(b => b.classList.remove('on'));
+    btn.classList.add('on');
+    wrap.querySelectorAll('.spane').forEach(p => p.classList.remove('on'));
+    document.getElementById('pane-' + id).classList.add('on');
+  }
 
+  // copy
+  function cp(id, btn) {
+    const txt = document.getElementById(id).textContent;
+    navigator.clipboard.writeText(txt).then(() => {
+      btn.classList.add('ok');
+      btn.innerHTML = '✓ 已复制';
+      setTimeout(() => { btn.classList.remove('ok'); btn.innerHTML = '📋 复制'; }, 2000);
+    });
+  }
 
-(function(){
-  var dom = document.getElementById('chart_1');
-  if (!dom) return;
-  var chart = echarts.init(dom);
-  chart.setOption({
-    backgroundColor: 'transparent',
-    tooltip: {
-      trigger: 'axis',
-      formatter: function(p){
-        return p[0].name + '<br/><b>' + p[0].value.toLocaleString() + '</b> 首单';
-      }
-    },
-    grid: { top:50, bottom:50, left:64, right:30 },
-    xAxis: {
-      type: 'category',
-      data: D.fmt_dates,
-      axisLabel: { fontSize:11, interval:1, rotate:45 },
-      axisLine: { lineStyle: { color:'#d1d5db' } },
-      axisTick: { show:false }
-    },
-    yAxis: {
-      type: 'value',
-      axisLabel: { fontSize:11 },
-      splitLine: { lineStyle: { color:'#f3f4f6' } }
-    },
-    series: [
-      {
-        type: 'line',
-        data: [231, 400, 345, 309, 374, 293, 388, 474, 653, 567, 664, 943, 1208, 1259, 1334, 1131, 1411, 1278, 1410, 1611, 1682, 1544, 1470, 1511, 1569, 1337, 1061, 1094, 1068, 984],
-        smooth: true,
-        symbol: 'circle',
-        symbolSize: 4,
-        lineStyle: { width:2.5, color:'#ef4444' },
-        itemStyle: { color:'#ef4444' },
-        areaStyle: { color: { type:'linear',x:0,y:0,x2:0,y2:1,
-          colorStops:[{offset:0,color:'#ef444433'},{offset:1,color:'#ef444400'}] } },
-        markLine: {
-          silent: true,
-          symbol: ['none','none'],
-          data: [
-            {
-              xAxis: D.change_idx,
-              lineStyle: { color:'#ef4444', width:2, type:'dashed' },
-              label: { formatter:'策略变更\n05/27', position:'insideStartTop',
-                        color:'#ef4444', fontSize:11, fontWeight:'bold' }
-            },
-            {
-              yAxis: 1542.4,
-              lineStyle: { color:'#3b82f6', width:1.5, type:'dashed' },
-              label: { formatter:'前一周均值 1542.4', position:'insideEndBottom',
-                        color:'#3b82f6', fontSize:10 }
-            },
-            {
-              yAxis: 1108.8,
-              lineStyle: { color:'#f97316', width:1.5, type:'dashed' },
-              label: { formatter:'变更后均值 1108.8', position:'insideEndTop',
-                        color:'#f97316', fontSize:10 }
-            }
-          ]
-        }
-      }
-    ]
-  });
-  window.addEventListener('resize', function(){ chart.resize(); });
-})();
+  // scroll fade
+  const io = new IntersectionObserver(entries => {
+    entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('in'); });
+  }, { threshold: 0.06 });
 
-
-(function(){
-  var dom = document.getElementById('chart_2');
-  if (!dom) return;
-  var chart = echarts.init(dom);
-  chart.setOption({
-    backgroundColor: 'transparent',
-    tooltip: {
-      trigger: 'axis',
-      formatter: function(p){
-        return p[0].name + '<br/><b>' + p[0].value.toLocaleString() + '</b> 首单';
-      }
-    },
-    grid: { top:50, bottom:50, left:64, right:30 },
-    xAxis: {
-      type: 'category',
-      data: D.fmt_dates,
-      axisLabel: { fontSize:11, interval:1, rotate:45 },
-      axisLine: { lineStyle: { color:'#d1d5db' } },
-      axisTick: { show:false }
-    },
-    yAxis: {
-      type: 'value',
-      axisLabel: { fontSize:11 },
-      splitLine: { lineStyle: { color:'#f3f4f6' } }
-    },
-    series: [
-      {
-        type: 'line',
-        data: [793, 803, 827, 875, 1168, 844, 795, 787, 688, 585, 822, 871, 874, 859, 854, 769, 776, 746, 775, 730, 733, 776, 750, 817, 837, 655, 625, 617, 670, 671],
-        smooth: true,
-        symbol: 'circle',
-        symbolSize: 4,
-        lineStyle: { width:2.5, color:'#f97316' },
-        itemStyle: { color:'#f97316' },
-        areaStyle: { color: { type:'linear',x:0,y:0,x2:0,y2:1,
-          colorStops:[{offset:0,color:'#f9731633'},{offset:1,color:'#f9731600'}] } },
-        markLine: {
-          silent: true,
-          symbol: ['none','none'],
-          data: [
-            {
-              xAxis: D.change_idx,
-              lineStyle: { color:'#ef4444', width:2, type:'dashed' },
-              label: { formatter:'策略变更\n05/27', position:'insideStartTop',
-                        color:'#ef4444', fontSize:11, fontWeight:'bold' }
-            },
-            {
-              yAxis: 774.0,
-              lineStyle: { color:'#3b82f6', width:1.5, type:'dashed' },
-              label: { formatter:'前一周均值 774.0', position:'insideEndBottom',
-                        color:'#3b82f6', fontSize:10 }
-            },
-            {
-              yAxis: 647.6,
-              lineStyle: { color:'#f97316', width:1.5, type:'dashed' },
-              label: { formatter:'变更后均值 647.6', position:'insideEndTop',
-                        color:'#f97316', fontSize:10 }
-            }
-          ]
-        }
-      }
-    ]
-  });
-  window.addEventListener('resize', function(){ chart.resize(); });
-})();
-
-
-(function(){
-  var dom = document.getElementById('chart_3');
-  if (!dom) return;
-  var chart = echarts.init(dom);
-  chart.setOption({
-    backgroundColor: 'transparent',
-    tooltip: {
-      trigger: 'axis',
-      formatter: function(p){
-        return p[0].name + '<br/><b>' + p[0].value.toLocaleString() + '</b> 首单';
-      }
-    },
-    grid: { top:50, bottom:50, left:64, right:30 },
-    xAxis: {
-      type: 'category',
-      data: D.fmt_dates,
-      axisLabel: { fontSize:11, interval:1, rotate:45 },
-      axisLine: { lineStyle: { color:'#d1d5db' } },
-      axisTick: { show:false }
-    },
-    yAxis: {
-      type: 'value',
-      axisLabel: { fontSize:11 },
-      splitLine: { lineStyle: { color:'#f3f4f6' } }
-    },
-    series: [
-      {
-        type: 'line',
-        data: [762, 694, 780, 823, 872, 847, 813, 752, 675, 702, 714, 746, 691, 715, 667, 680, 672, 646, 604, 654, 698, 633, 627, 708, 628, 575, 565, 543, 553, 530],
-        smooth: true,
-        symbol: 'circle',
-        symbolSize: 4,
-        lineStyle: { width:2.5, color:'#f97316' },
-        itemStyle: { color:'#f97316' },
-        areaStyle: { color: { type:'linear',x:0,y:0,x2:0,y2:1,
-          colorStops:[{offset:0,color:'#f9731633'},{offset:1,color:'#f9731600'}] } },
-        markLine: {
-          silent: true,
-          symbol: ['none','none'],
-          data: [
-            {
-              xAxis: D.change_idx,
-              lineStyle: { color:'#ef4444', width:2, type:'dashed' },
-              label: { formatter:'策略变更\n05/27', position:'insideStartTop',
-                        color:'#ef4444', fontSize:11, fontWeight:'bold' }
-            },
-            {
-              yAxis: 650.3,
-              lineStyle: { color:'#3b82f6', width:1.5, type:'dashed' },
-              label: { formatter:'前一周均值 650.3', position:'insideEndBottom',
-                        color:'#3b82f6', fontSize:10 }
-            },
-            {
-              yAxis: 553.2,
-              lineStyle: { color:'#f97316', width:1.5, type:'dashed' },
-              label: { formatter:'变更后均值 553.2', position:'insideEndTop',
-                        color:'#f97316', fontSize:10 }
-            }
-          ]
-        }
-      }
-    ]
-  });
-  window.addEventListener('resize', function(){ chart.resize(); });
-})();
-
-
-(function(){
-  var dom = document.getElementById('chart_4');
-  if (!dom) return;
-  var chart = echarts.init(dom);
-  chart.setOption({
-    backgroundColor: 'transparent',
-    tooltip: {
-      trigger: 'axis',
-      formatter: function(p){
-        return p[0].name + '<br/><b>' + p[0].value.toLocaleString() + '</b> 首单';
-      }
-    },
-    grid: { top:50, bottom:50, left:64, right:30 },
-    xAxis: {
-      type: 'category',
-      data: D.fmt_dates,
-      axisLabel: { fontSize:11, interval:1, rotate:45 },
-      axisLine: { lineStyle: { color:'#d1d5db' } },
-      axisTick: { show:false }
-    },
-    yAxis: {
-      type: 'value',
-      axisLabel: { fontSize:11 },
-      splitLine: { lineStyle: { color:'#f3f4f6' } }
-    },
-    series: [
-      {
-        type: 'line',
-        data: [245, 273, 253, 220, 215, 263, 244, 219, 200, 212, 207, 265, 208, 223, 225, 253, 208, 203, 225, 232, 204, 189, 179, 168, 175, 182, 184, 191, 157, 184],
-        smooth: true,
-        symbol: 'circle',
-        symbolSize: 4,
-        lineStyle: { width:2.5, color:'#f97316' },
-        itemStyle: { color:'#f97316' },
-        areaStyle: { color: { type:'linear',x:0,y:0,x2:0,y2:1,
-          colorStops:[{offset:0,color:'#f9731633'},{offset:1,color:'#f9731600'}] } },
-        markLine: {
-          silent: true,
-          symbol: ['none','none'],
-          data: [
-            {
-              xAxis: D.change_idx,
-              lineStyle: { color:'#ef4444', width:2, type:'dashed' },
-              label: { formatter:'策略变更\n05/27', position:'insideStartTop',
-                        color:'#ef4444', fontSize:11, fontWeight:'bold' }
-            },
-            {
-              yAxis: 196.0,
-              lineStyle: { color:'#3b82f6', width:1.5, type:'dashed' },
-              label: { formatter:'前一周均值 196.0', position:'insideEndBottom',
-                        color:'#3b82f6', fontSize:10 }
-            },
-            {
-              yAxis: 179.6,
-              lineStyle: { color:'#f97316', width:1.5, type:'dashed' },
-              label: { formatter:'变更后均值 179.6', position:'insideEndTop',
-                        color:'#f97316', fontSize:10 }
-            }
-          ]
-        }
-      }
-    ]
-  });
-  window.addEventListener('resize', function(){ chart.resize(); });
-})();
-
-
-(function(){
-  var dom = document.getElementById('chart_5');
-  if (!dom) return;
-  var chart = echarts.init(dom);
-  chart.setOption({
-    backgroundColor: 'transparent',
-    tooltip: {
-      trigger: 'axis',
-      formatter: function(p){
-        return p[0].name + '<br/><b>' + p[0].value.toLocaleString() + '</b> 首单';
-      }
-    },
-    grid: { top:50, bottom:50, left:64, right:30 },
-    xAxis: {
-      type: 'category',
-      data: D.fmt_dates,
-      axisLabel: { fontSize:11, interval:1, rotate:45 },
-      axisLine: { lineStyle: { color:'#d1d5db' } },
-      axisTick: { show:false }
-    },
-    yAxis: {
-      type: 'value',
-      axisLabel: { fontSize:11 },
-      splitLine: { lineStyle: { color:'#f3f4f6' } }
-    },
-    series: [
-      {
-        type: 'line',
-        data: [175, 165, 205, 183, 184, 176, 200, 233, 202, 168, 252, 204, 285, 202, 203, 201, 220, 306, 222, 180, 129, 108, 150, 123, 103, 120, 122, 105, 122, 95],
-        smooth: true,
-        symbol: 'circle',
-        symbolSize: 4,
-        lineStyle: { width:2.5, color:'#ef4444' },
-        itemStyle: { color:'#ef4444' },
-        areaStyle: { color: { type:'linear',x:0,y:0,x2:0,y2:1,
-          colorStops:[{offset:0,color:'#ef444433'},{offset:1,color:'#ef444400'}] } },
-        markLine: {
-          silent: true,
-          symbol: ['none','none'],
-          data: [
-            {
-              xAxis: D.change_idx,
-              lineStyle: { color:'#ef4444', width:2, type:'dashed' },
-              label: { formatter:'策略变更\n05/27', position:'insideStartTop',
-                        color:'#ef4444', fontSize:11, fontWeight:'bold' }
-            },
-            {
-              yAxis: 145.0,
-              lineStyle: { color:'#3b82f6', width:1.5, type:'dashed' },
-              label: { formatter:'前一周均值 145.0', position:'insideEndBottom',
-                        color:'#3b82f6', fontSize:10 }
-            },
-            {
-              yAxis: 112.8,
-              lineStyle: { color:'#f97316', width:1.5, type:'dashed' },
-              label: { formatter:'变更后均值 112.8', position:'insideEndTop',
-                        color:'#f97316', fontSize:10 }
-            }
-          ]
-        }
-      }
-    ]
-  });
-  window.addEventListener('resize', function(){ chart.resize(); });
-})();
-
-
-(function(){
-  var dom = document.getElementById('chart_6');
-  if (!dom) return;
-  var chart = echarts.init(dom);
-  chart.setOption({
-    backgroundColor: 'transparent',
-    tooltip: {
-      trigger: 'axis',
-      formatter: function(p){
-        return p[0].name + '<br/><b>' + p[0].value.toLocaleString() + '</b> 首单';
-      }
-    },
-    grid: { top:50, bottom:50, left:64, right:30 },
-    xAxis: {
-      type: 'category',
-      data: D.fmt_dates,
-      axisLabel: { fontSize:11, interval:1, rotate:45 },
-      axisLine: { lineStyle: { color:'#d1d5db' } },
-      axisTick: { show:false }
-    },
-    yAxis: {
-      type: 'value',
-      axisLabel: { fontSize:11 },
-      splitLine: { lineStyle: { color:'#f3f4f6' } }
-    },
-    series: [
-      {
-        type: 'line',
-        data: [132, 178, 178, 183, 216, 122, 117, 138, 170, 164, 213, 131, 131, 128, 114, 149, 142, 109, 109, 96, 96, 96, 87, 89, 75, 71, 81, 79, 97, 144],
-        smooth: true,
-        symbol: 'circle',
-        symbolSize: 4,
-        lineStyle: { width:2.5, color:'#10b981' },
-        itemStyle: { color:'#10b981' },
-        areaStyle: { color: { type:'linear',x:0,y:0,x2:0,y2:1,
-          colorStops:[{offset:0,color:'#10b98133'},{offset:1,color:'#10b98100'}] } },
-        markLine: {
-          silent: true,
-          symbol: ['none','none'],
-          data: [
-            {
-              xAxis: D.change_idx,
-              lineStyle: { color:'#ef4444', width:2, type:'dashed' },
-              label: { formatter:'策略变更\n05/27', position:'insideStartTop',
-                        color:'#ef4444', fontSize:11, fontWeight:'bold' }
-            },
-            {
-              yAxis: 92.6,
-              lineStyle: { color:'#3b82f6', width:1.5, type:'dashed' },
-              label: { formatter:'前一周均值 92.6', position:'insideEndBottom',
-                        color:'#3b82f6', fontSize:10 }
-            },
-            {
-              yAxis: 94.4,
-              lineStyle: { color:'#f97316', width:1.5, type:'dashed' },
-              label: { formatter:'变更后均值 94.4', position:'insideEndTop',
-                        color:'#f97316', fontSize:10 }
-            }
-          ]
-        }
-      }
-    ]
-  });
-  window.addEventListener('resize', function(){ chart.resize(); });
-})();
-
-
-(function(){
-  var dom = document.getElementById('chart_7');
-  if (!dom) return;
-  var chart = echarts.init(dom);
-  chart.setOption({
-    backgroundColor: 'transparent',
-    tooltip: {
-      trigger: 'axis',
-      formatter: function(p){
-        return p[0].name + '<br/><b>' + p[0].value.toLocaleString() + '</b> 首单';
-      }
-    },
-    grid: { top:50, bottom:50, left:64, right:30 },
-    xAxis: {
-      type: 'category',
-      data: D.fmt_dates,
-      axisLabel: { fontSize:11, interval:1, rotate:45 },
-      axisLine: { lineStyle: { color:'#d1d5db' } },
-      axisTick: { show:false }
-    },
-    yAxis: {
-      type: 'value',
-      axisLabel: { fontSize:11 },
-      splitLine: { lineStyle: { color:'#f3f4f6' } }
-    },
-    series: [
-      {
-        type: 'line',
-        data: [107, 90, 97, 88, 92, 71, 82, 94, 74, 78, 92, 72, 83, 92, 86, 88, 87, 79, 83, 82, 76, 100, 77, 103, 83, 86, 94, 96, 82, 64],
-        smooth: true,
-        symbol: 'circle',
-        symbolSize: 4,
-        lineStyle: { width:2.5, color:'#f97316' },
-        itemStyle: { color:'#f97316' },
-        areaStyle: { color: { type:'linear',x:0,y:0,x2:0,y2:1,
-          colorStops:[{offset:0,color:'#f9731633'},{offset:1,color:'#f9731600'}] } },
-        markLine: {
-          silent: true,
-          symbol: ['none','none'],
-          data: [
-            {
-              xAxis: D.change_idx,
-              lineStyle: { color:'#ef4444', width:2, type:'dashed' },
-              label: { formatter:'策略变更\n05/27', position:'insideStartTop',
-                        color:'#ef4444', fontSize:11, fontWeight:'bold' }
-            },
-            {
-              yAxis: 86.3,
-              lineStyle: { color:'#3b82f6', width:1.5, type:'dashed' },
-              label: { formatter:'前一周均值 86.3', position:'insideEndBottom',
-                        color:'#3b82f6', fontSize:10 }
-            },
-            {
-              yAxis: 84.4,
-              lineStyle: { color:'#f97316', width:1.5, type:'dashed' },
-              label: { formatter:'变更后均值 84.4', position:'insideEndTop',
-                        color:'#f97316', fontSize:10 }
-            }
-          ]
-        }
-      }
-    ]
-  });
-  window.addEventListener('resize', function(){ chart.resize(); });
-})();
-
-
-(function(){
-  var dom = document.getElementById('chart_8');
-  if (!dom) return;
-  var chart = echarts.init(dom);
-  chart.setOption({
-    backgroundColor: 'transparent',
-    tooltip: {
-      trigger: 'axis',
-      formatter: function(p){
-        return p[0].name + '<br/><b>' + p[0].value.toLocaleString() + '</b> 首单';
-      }
-    },
-    grid: { top:50, bottom:50, left:64, right:30 },
-    xAxis: {
-      type: 'category',
-      data: D.fmt_dates,
-      axisLabel: { fontSize:11, interval:1, rotate:45 },
-      axisLine: { lineStyle: { color:'#d1d5db' } },
-      axisTick: { show:false }
-    },
-    yAxis: {
-      type: 'value',
-      axisLabel: { fontSize:11 },
-      splitLine: { lineStyle: { color:'#f3f4f6' } }
-    },
-    series: [
-      {
-        type: 'line',
-        data: [10, 19, 19, 14, 15, 23, 13, 21, 23, 27, 24, 33, 26, 33, 19, 26, 35, 27, 25, 34, 49, 51, 62, 80, 88, 61, 87, 61, 71, 83],
-        smooth: true,
-        symbol: 'circle',
-        symbolSize: 4,
-        lineStyle: { width:2.5, color:'#10b981' },
-        itemStyle: { color:'#10b981' },
-        areaStyle: { color: { type:'linear',x:0,y:0,x2:0,y2:1,
-          colorStops:[{offset:0,color:'#10b98133'},{offset:1,color:'#10b98100'}] } },
-        markLine: {
-          silent: true,
-          symbol: ['none','none'],
-          data: [
-            {
-              xAxis: D.change_idx,
-              lineStyle: { color:'#ef4444', width:2, type:'dashed' },
-              label: { formatter:'策略变更\n05/27', position:'insideStartTop',
-                        color:'#ef4444', fontSize:11, fontWeight:'bold' }
-            },
-            {
-              yAxis: 55.6,
-              lineStyle: { color:'#3b82f6', width:1.5, type:'dashed' },
-              label: { formatter:'前一周均值 55.6', position:'insideEndBottom',
-                        color:'#3b82f6', fontSize:10 }
-            },
-            {
-              yAxis: 72.6,
-              lineStyle: { color:'#f97316', width:1.5, type:'dashed' },
-              label: { formatter:'变更后均值 72.6', position:'insideEndTop',
-                        color:'#f97316', fontSize:10 }
-            }
-          ]
-        }
-      }
-    ]
-  });
-  window.addEventListener('resize', function(){ chart.resize(); });
-})();
-
-});
+  document.querySelectorAll('.fade-in').forEach(el => io.observe(el));
 </script>
+
 </body>
 </html>
