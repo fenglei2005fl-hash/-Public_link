@@ -1,0 +1,2193 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Write-SQL Skill · 拼团AB实验时间间隔分析 · 完整对话演示</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark-dimmed.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <style>
+    :root {
+      --ink:#0b0e17;--ink2:#0f1320;--ink3:#161b29;--ink4:#1c2235;
+      --line:#232c42;--line2:#2e3a56;--smoke:#8898bb;--mist:#4e5f80;
+      --snow:#e8edf8;--accent:#00e5a0;--accent2:#5b6fff;--amber:#ffb930;--rose:#ff5f7e;
+      --acc-dim:rgba(0,229,160,.12);--acc-bdr:rgba(0,229,160,.30);
+      --blu-dim:rgba(91,111,255,.12);--blu-bdr:rgba(91,111,255,.28);
+      --amb-dim:rgba(255,185,48,.10);--amb-bdr:rgba(255,185,48,.28);
+      --ros-dim:rgba(255,95,126,.10);--ros-bdr:rgba(255,95,126,.28);
+      --sans:'DM Sans',sans-serif;--display:'Syne',sans-serif;--mono:'DM Mono',monospace;
+    }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    html{scroll-behavior:smooth}
+    body{background:var(--ink);color:var(--snow);font-family:var(--sans);font-size:14px;line-height:1.65;overflow-x:hidden}
+    ::-webkit-scrollbar{width:4px}
+    ::-webkit-scrollbar-track{background:var(--ink)}
+    ::-webkit-scrollbar-thumb{background:var(--line2);border-radius:2px}
+
+    .topbar{position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:0 32px;height:52px;background:rgba(11,14,23,.88);backdrop-filter:blur(16px);border-bottom:1px solid var(--line)}
+    .topbar-logo{font-family:var(--display);font-size:14px;font-weight:700;letter-spacing:.04em;color:#fff;display:flex;align-items:center;gap:10px}
+    .topbar-logo .dot{width:8px;height:8px;border-radius:50%;background:var(--accent);animation:pulse 2s ease-in-out infinite}
+    @keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(0,229,160,.6)}50%{box-shadow:0 0 0 6px rgba(0,229,160,0)}}
+    .topbar-tags{display:flex;align-items:center;gap:8px}
+    .ttag{font-family:var(--mono);font-size:10px;padding:3px 10px;border-radius:20px;border:1px solid;letter-spacing:.05em}
+    .ttag-g{background:var(--acc-dim);border-color:var(--acc-bdr);color:var(--accent)}
+    .ttag-b{background:var(--blu-dim);border-color:var(--blu-bdr);color:var(--accent2)}
+    .ttag-a{background:var(--amb-dim);border-color:var(--amb-bdr);color:var(--amber)}
+
+    .hero{position:relative;overflow:hidden;padding:88px 0 72px;text-align:center}
+    .hero-grid{position:absolute;inset:0;background-image:linear-gradient(rgba(91,111,255,.07) 1px,transparent 1px),linear-gradient(90deg,rgba(91,111,255,.07) 1px,transparent 1px);background-size:48px 48px;animation:gridshift 20s linear infinite}
+    @keyframes gridshift{0%{background-position:0 0}100%{background-position:48px 48px}}
+    .hero-orb{position:absolute;width:620px;height:400px;top:-100px;left:50%;transform:translateX(-50%);background:radial-gradient(ellipse,rgba(0,229,160,.10) 0%,rgba(91,111,255,.08) 45%,transparent 70%);animation:orb 7s ease-in-out infinite;pointer-events:none}
+    @keyframes orb{0%,100%{transform:translateX(-50%) scale(1)}50%{transform:translateX(-50%) scale(1.08)}}
+    .hero-badge{position:relative;display:inline-flex;align-items:center;gap:8px;font-family:var(--mono);font-size:11px;letter-spacing:.08em;padding:5px 16px;border:1px solid var(--acc-bdr);background:var(--acc-dim);border-radius:20px;color:var(--accent);margin-bottom:28px}
+    .live-dot{width:6px;height:6px;border-radius:50%;background:var(--accent);animation:blink 1.6s ease-in-out infinite}
+    @keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+    .hero-title{position:relative;font-family:var(--display);font-size:clamp(34px,5vw,62px);font-weight:800;line-height:1.08;letter-spacing:-.025em;color:#fff;margin-bottom:20px}
+    .hero-title .hl-teal{color:var(--accent)}
+    .hero-title .hl-blue{color:var(--accent2)}
+    .hero-sub{position:relative;font-size:15px;font-weight:300;color:var(--smoke);max-width:540px;margin:0 auto 40px;line-height:1.8}
+    .hero-pills{position:relative;display:flex;justify-content:center;flex-wrap:wrap;gap:10px}
+    .hpill{display:inline-flex;align-items:center;gap:7px;padding:8px 18px;border-radius:8px;font-size:12.5px;font-weight:500;border:1px solid}
+    .hp-g{background:var(--acc-dim);border-color:var(--acc-bdr);color:var(--accent)}
+    .hp-b{background:var(--blu-dim);border-color:var(--blu-bdr);color:var(--accent2)}
+    .hp-a{background:var(--amb-dim);border-color:var(--amb-bdr);color:var(--amber)}
+    .hp-r{background:var(--ros-dim);border-color:var(--ros-bdr);color:var(--rose)}
+
+    .wrap{max-width:960px;margin:0 auto;padding:0 28px 120px}
+    .divider{display:flex;align-items:center;gap:16px;margin:56px 0 32px}
+    .divider-line{flex:1;height:1px;background:var(--line)}
+    .divider-label{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--mist);white-space:nowrap;padding:4px 14px;border:1px solid var(--line);border-radius:20px}
+
+    .chat{display:flex;flex-direction:column;gap:0}
+    .turn{margin-bottom:42px}
+    .msg-user{display:flex;flex-direction:row-reverse;align-items:flex-start;gap:12px;margin-bottom:8px}
+    .av{width:34px;height:34px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600}
+    .av-u{background:var(--blu-dim);border:1.5px solid var(--blu-bdr);color:var(--accent2);font-size:11px;font-family:var(--mono)}
+    .av-ai{background:var(--acc-dim);border:1.5px solid var(--acc-bdr);color:var(--accent);font-size:12px}
+    .bubble-u{max-width:72%;background:var(--blu-dim);border:1px solid var(--blu-bdr);border-radius:14px 3px 14px 14px;padding:13px 18px;font-size:14px;color:#fff;line-height:1.65}
+    .bubble-u strong{color:var(--accent)}
+    .msg-ai{display:flex;align-items:flex-start;gap:12px;margin-left:8px}
+    .ai-body{flex:1;min-width:0}
+    .ai-header{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+    .ai-name{font-family:var(--mono);font-size:11px;color:var(--accent);letter-spacing:.04em}
+    .ai-step-tag{font-family:var(--mono);font-size:9.5px;padding:2px 9px;border-radius:10px;background:var(--ink3);border:1px solid var(--line);color:var(--mist);letter-spacing:.04em}
+
+    .card{background:var(--ink2);border:1px solid var(--line);border-radius:14px;overflow:hidden;margin-bottom:10px;transition:border-color .25s,box-shadow .25s}
+    .card:hover{border-color:var(--line2);box-shadow:0 4px 32px rgba(0,0,0,.4)}
+    .card-head{display:flex;align-items:center;gap:14px;padding:15px 20px;cursor:pointer;user-select:none}
+    .card-icon{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0}
+    .ci-teal{background:var(--acc-dim);border:1px solid var(--acc-bdr)}
+    .ci-blue{background:var(--blu-dim);border:1px solid var(--blu-bdr)}
+    .ci-amb{background:var(--amb-dim);border:1px solid var(--amb-bdr)}
+    .ci-rose{background:var(--ros-dim);border:1px solid var(--ros-bdr)}
+    .card-titles{flex:1}
+    .card-titles h4{font-size:13.5px;font-weight:600;color:#fff;margin-bottom:1px}
+    .card-titles p{font-size:11.5px;color:var(--smoke);font-weight:300}
+    .card-badge{font-family:var(--mono);font-size:10px;padding:3px 10px;border-radius:6px;border:1px solid;white-space:nowrap}
+    .cb-ok{background:var(--acc-dim);color:var(--accent);border-color:var(--acc-bdr)}
+    .cb-info{background:var(--blu-dim);color:var(--accent2);border-color:var(--blu-bdr)}
+    .cb-warn{background:var(--amb-dim);color:var(--amber);border-color:var(--amb-bdr)}
+    .chevron{color:var(--mist);font-size:11px;transition:transform .25s;margin-left:4px}
+    .card.open .chevron{transform:rotate(90deg)}
+    .card-body{border-top:1px solid var(--line);padding:18px 20px;display:none}
+    .card.open .card-body{display:block}
+
+    .dgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-bottom:14px}
+    .dcell{background:var(--ink);border:1px solid var(--line);border-radius:9px;padding:10px 14px}
+    .dcell-k{font-family:var(--mono);font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--mist);margin-bottom:5px}
+    .dcell-v{font-family:var(--mono);font-size:13px;color:var(--snow)}
+    .dv-g{color:var(--accent)}.dv-b{color:var(--accent2)}.dv-a{color:var(--amber)}.dv-r{color:var(--rose)}
+
+    .prose{font-size:13px;color:var(--smoke);line-height:1.8}
+    .prose strong{color:var(--snow);font-weight:500}
+    code{font-family:var(--mono);font-size:11.5px;background:var(--ink3);padding:2px 6px;border-radius:4px;color:var(--amber)}
+
+    .flist{display:flex;flex-direction:column;gap:7px;margin-bottom:14px}
+    .fitem{display:flex;align-items:center;gap:10px;padding:9px 14px;background:var(--ink);border:1px solid var(--line);border-radius:8px;font-size:12.5px;transition:border-color .2s}
+    .fitem:hover{border-color:var(--line2)}
+    .fitem-name{font-family:var(--mono);font-size:11.5px;color:var(--accent2);flex:1}
+    .fitem-desc{font-size:11px;color:var(--smoke)}
+    .fitem-ok{color:var(--accent);font-size:13px}
+
+    .exp-groups{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0}
+    .eg{padding:14px 16px;border-radius:10px;border:1px solid}
+    .eg-exp{background:var(--acc-dim);border-color:var(--acc-bdr)}
+    .eg-ctrl{background:var(--blu-dim);border-color:var(--blu-bdr)}
+    .eg-label{font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px}
+    .eg-exp .eg-label{color:var(--accent)}
+    .eg-ctrl .eg-label{color:var(--accent2)}
+    .eg-cond{font-size:12px;color:var(--snow);line-height:1.7}
+
+    .schema-cols{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0}
+    .scol{font-family:var(--mono);font-size:11px;padding:4px 12px;border-radius:6px;border:1px solid var(--line);background:var(--ink3);color:var(--snow)}
+    .scol.key{border-color:var(--acc-bdr);color:var(--accent);background:var(--acc-dim)}
+    .scol.new{border-color:var(--ros-bdr);color:var(--rose);background:var(--ros-dim)}
+
+    .think-strip{display:flex;align-items:center;gap:10px;padding:9px 14px;background:var(--ink3);border:1px solid var(--line);border-radius:8px;margin-bottom:10px;font-size:12px;color:var(--mist)}
+    .think-dots{display:flex;gap:3px}
+    .think-dots span{width:4px;height:4px;border-radius:50%;background:var(--mist);animation:tdot 1.4s ease-in-out infinite}
+    .think-dots span:nth-child(2){animation-delay:.2s}
+    .think-dots span:nth-child(3){animation-delay:.4s}
+    @keyframes tdot{0%,100%{opacity:.3;transform:translateY(0)}50%{opacity:1;transform:translateY(-2px)}}
+
+    .vblock{background:var(--ink);border:1px solid var(--line);border-radius:9px;overflow:hidden;margin:12px 0}
+    .vhead{padding:7px 14px;background:var(--ink3);border-bottom:1px solid var(--line);font-family:var(--mono);font-size:9.5px;color:var(--mist);letter-spacing:.05em;display:flex;align-items:center;justify-content:space-between}
+    .vrow{display:flex;align-items:flex-start;gap:12px;padding:10px 14px;border-bottom:1px solid var(--line);font-family:var(--mono);font-size:11.5px}
+    .vrow:last-child{border-bottom:none}
+    .vtag{font-size:9.5px;padding:2px 8px;border-radius:4px;flex-shrink:0;margin-top:1px}
+    .vt-ok{background:var(--acc-dim);color:var(--accent)}
+    .vt-warn{background:var(--amb-dim);color:var(--amber)}
+    .vt-skip{background:var(--ink3);color:var(--mist)}
+    .vmsg{color:var(--smoke);font-size:11px;line-height:1.6}
+
+    .sql-wrap{margin-top:14px}
+    .sql-tabs{display:flex;gap:3px;margin-bottom:-1px;position:relative;z-index:1}
+    .stab{padding:7px 18px;background:var(--ink);border:1px solid var(--line);border-bottom:none;border-radius:8px 8px 0 0;font-family:var(--mono);font-size:11.5px;color:var(--mist);cursor:pointer;transition:all .2s}
+    .stab.on{background:var(--ink3);color:#fff;border-color:var(--line2)}
+    .spane{display:none}
+    .spane.on{display:block}
+    .codebox{background:#0c1020;border:1px solid var(--line2);border-radius:0 12px 12px 12px;overflow:hidden}
+    .codebox-bar{display:flex;align-items:center;justify-content:space-between;padding:8px 16px;background:#0e1422;border-bottom:1px solid var(--line)}
+    .codebox-eng{font-family:var(--mono);font-size:9.5px;color:var(--mist);letter-spacing:.05em}
+    .copybtn{display:flex;align-items:center;gap:5px;padding:4px 12px;background:var(--ink3);border:1px solid var(--line2);border-radius:5px;font-size:11px;font-family:var(--mono);color:var(--smoke);cursor:pointer;transition:all .2s}
+    .copybtn:hover{background:var(--acc-dim);border-color:var(--acc-bdr);color:var(--accent)}
+    .copybtn.ok{background:var(--acc-dim);border-color:var(--acc-bdr);color:var(--accent)}
+    .codebox pre{margin:0;padding:20px 22px;overflow-x:auto;max-height:560px;overflow-y:auto}
+    .codebox pre code{font-family:var(--mono) !important;font-size:11.5px !important;line-height:1.68;background:transparent !important;padding:0 !important}
+
+    .ntable{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:14px}
+    .ntable th{padding:7px 12px;text-align:left;font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--mist);background:var(--ink);border:1px solid var(--line)}
+    .ntable td{padding:9px 12px;border:1px solid var(--line);color:var(--smoke);vertical-align:top;line-height:1.65}
+    .ntable td:first-child{font-family:var(--mono);font-size:11px;color:var(--accent);white-space:nowrap;background:var(--ink)}
+    .ntable tr:hover td{background:var(--ink3)}
+
+    .wbanner{display:flex;gap:12px;padding:13px 17px;background:var(--amb-dim);border:1px solid var(--amb-bdr);border-radius:10px;margin:12px 0}
+    .wbanner-icon{font-size:17px;flex-shrink:0;line-height:1.5}
+    .wbanner-ttl{font-size:12.5px;font-weight:600;color:var(--amber);margin-bottom:3px}
+    .wbanner-body{font-size:12px;color:var(--smoke);line-height:1.65}
+
+    .diff-strip{background:var(--ink3);border:1px solid var(--line2);border-radius:10px;padding:14px 18px;margin:12px 0}
+    .diff-title{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--mist);margin-bottom:10px}
+    .diff-row{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:11px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+    .diff-row:last-child{border-bottom:none}
+    .diff-loc{color:var(--mist);flex-shrink:0;min-width:90px}
+    .diff-from{color:var(--rose);text-decoration:line-through;opacity:.7}
+    .diff-arr{color:var(--mist);padding:0 4px}
+    .diff-to{color:var(--accent)}
+    .diff-compat{color:var(--accent)}
+
+    .select-box{background:var(--ink3);border:1px solid var(--line2);border-left:3px solid var(--accent2);border-radius:10px;padding:16px 20px;margin:12px 0}
+    .select-box-title{font-size:13px;color:var(--snow);font-weight:500;margin-bottom:12px}
+    .select-item{display:flex;align-items:flex-start;gap:10px;padding:9px 12px;border-radius:8px;border:1px solid var(--line);background:var(--ink);margin-bottom:7px;transition:border-color .2s}
+    .select-item:hover{border-color:var(--line2)}
+    .select-item.active{background:var(--acc-dim);border-color:var(--acc-bdr)}
+    .select-num{font-family:var(--mono);font-size:12px;font-weight:600;padding:1px 7px;border-radius:5px;flex-shrink:0}
+    .select-item.active .select-num{background:var(--acc-bdr);color:var(--accent)}
+    .select-item:not(.active) .select-num{background:var(--line);color:var(--mist)}
+    .select-name{font-size:13px;color:var(--snow);font-weight:500;margin-bottom:2px}
+    .select-desc{font-size:11.5px;color:var(--smoke)}
+
+    .result-preview{background:var(--ink);border:1px solid var(--line);border-radius:10px;overflow:hidden;margin:12px 0}
+    .rp-head{padding:8px 14px;background:var(--ink3);border-bottom:1px solid var(--line);font-family:var(--mono);font-size:9.5px;color:var(--mist)}
+    .rp-table{width:100%;border-collapse:collapse;font-size:12px}
+    .rp-table th{padding:8px 12px;background:var(--ink2);border:1px solid var(--line);font-family:var(--mono);font-size:10px;color:var(--accent);text-align:left;letter-spacing:.05em}
+    .rp-table td{padding:7px 12px;border:1px solid var(--line);color:var(--smoke);font-family:var(--mono);font-size:11px}
+    .rp-table tr:nth-child(even) td{background:var(--ink2)}
+
+    .intro-card{position:relative;background:linear-gradient(135deg,rgba(91,111,255,.10) 0%,rgba(0,229,160,.07) 100%);border:1px solid rgba(91,111,255,.30);border-radius:16px;padding:26px 30px;overflow:hidden;margin-bottom:8px}
+    .intro-card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--accent2),var(--accent),transparent);opacity:.5}
+    .intro-title{font-family:var(--display);font-size:16px;font-weight:700;color:#fff;margin-bottom:6px}
+    .intro-desc{font-size:13px;color:var(--smoke);line-height:1.75}
+    .intro-chips{display:flex;flex-wrap:wrap;gap:7px;margin-top:14px}
+    .ichip{font-family:var(--mono);font-size:11px;padding:3px 10px;border-radius:6px;border:1px solid}
+    .ic-g{background:var(--acc-dim);border-color:var(--acc-bdr);color:var(--accent)}
+    .ic-b{background:var(--blu-dim);border-color:var(--blu-bdr);color:var(--accent2)}
+    .ic-a{background:var(--amb-dim);border-color:var(--amb-bdr);color:var(--amber)}
+    .ic-r{background:var(--ros-dim);border-color:var(--ros-bdr);color:var(--rose)}
+
+    .sumgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+    .sumcard{background:var(--ink2);border:1px solid var(--line);border-radius:12px;padding:20px 20px 18px;position:relative;overflow:hidden;transition:transform .2s,border-color .2s}
+    .sumcard:hover{transform:translateY(-2px);border-color:var(--line2)}
+    .sumcard::before{content:'';position:absolute;top:0;left:0;right:0;height:2px}
+    .sc-teal::before{background:var(--accent)}.sc-blue::before{background:var(--accent2)}
+    .sc-amb::before{background:var(--amber)}.sc-rose::before{background:var(--rose)}
+    .sumcard-icon{font-size:22px;margin-bottom:10px}
+    .sumcard-title{font-size:13px;font-weight:600;color:#fff;margin-bottom:6px;font-family:var(--display)}
+    .sumcard-desc{font-size:12px;color:var(--smoke);line-height:1.7}
+
+    .fi{opacity:0;transform:translateY(18px);transition:opacity .45s ease,transform .45s ease}
+    .fi.in{opacity:1;transform:none}
+
+    footer{max-width:960px;margin:0 auto;padding:28px 28px 48px;border-top:1px solid var(--line);display:flex;align-items:center;justify-content:space-between}
+    .foot-brand{font-family:var(--mono);font-size:12px;color:var(--mist)}
+    .foot-brand em{color:var(--accent);font-style:normal}
+    .foot-meta{font-family:var(--mono);font-size:10.5px;color:var(--mist);text-align:right;line-height:1.7}
+  </style>
+</head>
+<body>
+
+<nav class="topbar">
+  <div class="topbar-logo">
+    <span class="dot"></span>
+    Write-SQL Skill &nbsp;·&nbsp; 裂变拉新业务线
+  </div>
+  <div class="topbar-tags">
+    <span class="ttag ttag-g">✓ 全程0 ERROR</span>
+    <span class="ttag ttag-b">Trino SQL</span>
+    <span class="ttag ttag-a">5 轮对话</span>
+  </div>
+</nav>
+
+<section class="hero">
+  <div class="hero-grid"></div>
+  <div class="hero-orb"></div>
+  <div class="hero-badge">
+    <span class="live-dot"></span>
+    Write-SQL Skill &nbsp;·&nbsp; 完整对话演示
+  </div>
+  <h1 class="hero-title">
+    <span class="hl-blue">拼团AB实验</span><br>
+    首屏→立即购 <span class="hl-teal">时间间隔</span> 分析
+  </h1>
+  <p class="hero-sub">
+    从业务线选择到跨表订单维度，5 轮自然语言对话<br>
+    全自动生成经校验的 Trino SQL，0 ERROR 输出
+  </p>
+  <div class="hero-pills">
+    <span class="hpill hp-b">📋 业务线自动匹配</span>
+    <span class="hpill hp-g">📚 8份资料自动加载</span>
+    <span class="hpill hp-a">🔍 选表强制验证</span>
+    <span class="hpill hp-r">♻️ 5轮迭代修改</span>
+  </div>
+</section>
+
+<div class="wrap">
+
+  <div class="intro-card fi">
+    <div class="intro-title">🎯 这个演示在讲什么？</div>
+    <div class="intro-desc">
+      数据分析师希望分析拼团游戏AB实验中用户从<strong style="color:#fff">首屏首次曝光到立即购买</strong>的行为路径耗时分布。
+      从输入业务线开始，经过 5 轮自然语言对话，AI 全程自动完成需求解析 → 资料加载 → SQL生成 → 校验 → 方言转换 → 迭代修改，最终产出可直接在 Trino 执行的生产级 SQL。
+    </div>
+    <div class="intro-chips">
+      <span class="ichip ic-b">需求1：仅团长·时间间隔</span>
+      <span class="ichip ic-b">需求2：转换 Trino 格式</span>
+      <span class="ichip ic-g">需求3：增加用户身份维度</span>
+      <span class="ichip ic-a">需求4：去日期跨日汇总</span>
+      <span class="ichip ic-r">需求5：增加团长/团员订单维度</span>
+    </div>
+  </div>
+
+  <div class="chat">
+
+  <!-- ═══ TURN 0: 业务线选择 ═══ -->
+  <div class="divider fi">
+    <div class="divider-line"></div>
+    <div class="divider-label">// 开始 · 业务线选择</div>
+    <div class="divider-line"></div>
+  </div>
+  <div class="turn fi">
+    <div class="msg-user">
+      <div class="av av-u">我</div>
+      <div class="bubble-u" style="font-family:var(--mono);font-size:13px;letter-spacing:.04em;">/shein-fission-sql</div>
+    </div>
+    <div class="msg-ai" style="margin-top:12px">
+      <div class="av av-ai">AI</div>
+      <div class="ai-body">
+        <div class="ai-header">
+          <span class="ai-name">Claude · Write-SQL Skill</span>
+          <span class="ai-step-tag">步骤0 · 业务线识别</span>
+        </div>
+        <div class="think-strip">
+          <div class="think-dots"><span></span><span></span><span></span></div>
+          读取 business_lines.yaml · 无具体需求描述 · 所有业务线得分 &lt; 50 · 触发选择界面
+        </div>
+        <div class="card open">
+          <div class="card-head" onclick="tog(this)">
+            <div class="card-icon ci-blue">📋</div>
+            <div class="card-titles">
+              <h4>业务线选择界面</h4>
+              <p>未命中自动匹配阈值（&lt;50分），展示标准化菜单</p>
+            </div>
+            <span class="card-badge cb-info">等待输入</span>
+            <span class="chevron">›</span>
+          </div>
+          <div class="card-body">
+            <div class="select-box">
+              <div class="select-box-title">📋 请选择你要查询的业务线：</div>
+              <div class="select-item active">
+                <span class="select-num">1</span>
+                <div><div class="select-name">裂变拉新业务线</div><div class="select-desc">用户增长中心裂变游戏、助力、分享、邀请相关分析</div></div>
+              </div>
+              <div class="select-item">
+                <span class="select-num">2</span>
+                <div><div class="select-name">新客转化业务线</div><div class="select-desc">全公司新用户注册、首单、留存、拉新成本相关分析</div></div>
+              </div>
+              <div class="select-item">
+                <span class="select-num">3</span>
+                <div><div class="select-name">商品上架业务线</div><div class="select-desc">商品中心上架、库存、SKU、SPU、品类相关分析</div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="turn fi" style="margin-bottom:12px">
+    <div class="msg-user">
+      <div class="av av-u">我</div>
+      <div class="bubble-u">1</div>
+    </div>
+    <div class="msg-ai" style="margin-top:10px">
+      <div class="av av-ai">AI</div>
+      <div class="ai-body">
+        <div style="display:flex;align-items:center;gap:10px;padding:11px 16px;background:var(--acc-dim);border:1px solid var(--acc-bdr);border-radius:10px;font-size:13px;">
+          <span style="font-size:16px">✅</span>
+          <span style="color:#fff">已选择业务线：<strong style="color:var(--accent)">裂变拉新业务线</strong> · 资料目录已就绪，请告知你的查询需求</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ TURN 1: 初始需求 ═══ -->
+  <div class="divider fi">
+    <div class="divider-line"></div>
+    <div class="divider-label">// 需求一 · 团长时间间隔分位分析</div>
+    <div class="divider-line"></div>
+  </div>
+  <div class="turn fi">
+    <div class="msg-user">
+      <div class="av av-u">我</div>
+      <div class="bubble-u">
+        拼团游戏做了一个实验，想看下实验组和对照组<strong>团长从首屏首次曝光到立即购页面首次曝光的间隔时间分布</strong>，事件属性都是 <code>expose_popup_selectattr</code>，<code>page_tp='2'</code><br><br>
+        实验组首屏：<code>popup_type='groupbuycountdown_begin'</code> 且 <code>groupbuycountdown IN('A','B')</code><br>
+        对照组首屏：<code>popup_type='groupbuyfreeshipping'</code><br>
+        立即购曝光（两组通用）：<code>popup_type='orderdrawer'</code><br><br>
+        日期：5.26 到昨天。按每 <strong>10分位</strong> 分组，输出日期、实验组别、分位组、均值、中位数、最小值、最大值、团长数
+      </div>
+    </div>
+    <div class="msg-ai" style="margin-top:14px">
+      <div class="av av-ai">AI</div>
+      <div class="ai-body">
+        <div class="ai-header">
+          <span class="ai-name">Claude · Write-SQL Skill</span>
+          <span class="ai-step-tag">步骤1~6 · 完整流程</span>
+        </div>
+        <div class="think-strip">
+          <div class="think-dots"><span></span><span></span><span></span></div>
+          获取系统日期 20260603 · 昨天=20260602 · 范围 20260526~20260602
+        </div>
+        <div class="card open">
+          <div class="card-head" onclick="tog(this)">
+            <div class="card-icon ci-blue">📂</div>
+            <div class="card-titles">
+              <h4>步骤2 · 资料加载（8份）</h4>
+              <p>公共规范×3 + 裂变拉新业务线专属×5</p>
+            </div>
+            <span class="card-badge cb-ok">✓ 全部加载</span>
+            <span class="chevron">›</span>
+          </div>
+          <div class="card-body">
+            <div class="flist">
+              <div class="fitem"><span>📄</span><span class="fitem-name">base/hive-sql-spec.md</span><span class="fitem-desc">订单父子结构规则 · 漏斗口径通用规则</span><span class="fitem-ok">✓</span></div>
+              <div class="fitem"><span>📄</span><span class="fitem-name">base/data-quality-rules.md</span><span class="fitem-desc">测试用户过滤 · is_valid · site_tp 过滤</span><span class="fitem-ok">✓</span></div>
+              <div class="fitem"><span>📄</span><span class="fitem-name">base/sql-performance-guide.md</span><span class="fitem-desc">大表在前 · 禁止全表扫描 · CTE 优化</span><span class="fitem-ok">✓</span></div>
+              <div class="fitem"><span>📄</span><span class="fitem-name">fission-game/metric-definitions.md</span><span class="fitem-desc">裂变游戏指标口径字典 · DAU/游戏UV/K值等</span><span class="fitem-ok">✓</span></div>
+              <div class="fitem"><span>📄</span><span class="fitem-name">fission-game/data-dictionary.md</span><span class="fitem-desc">命中：dw_tfc_elmt_eps_ug_di（含page_tp/game_tp）</span><span class="fitem-ok">✓ 选表</span></div>
+              <div class="fitem"><span>📄</span><span class="fitem-name">fission-game/common-sql-templates.md</span><span class="fitem-desc">grep expose_popup_selectattr · 拼团(106)曝光模板复用</span><span class="fitem-ok">✓</span></div>
+              <div class="fitem"><span>📄</span><span class="fitem-name">fission-game/business-policy-log.md</span><span class="fitem-desc">查询时间范围内无拼团业务变更</span><span class="fitem-ok">✓</span></div>
+              <div class="fitem"><span>📄</span><span class="fitem-name">fission-game/examples/query-examples.md</span><span class="fitem-desc">未找到分位分析示例 · 从头构建</span><span class="fitem-ok">✓</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="card open">
+          <div class="card-head" onclick="tog(this)">
+            <div class="card-icon ci-amb">🔍</div>
+            <div class="card-titles">
+              <h4>步骤4 · 选表强制验证</h4>
+              <p>用增专属(_ug_) + 天级(_di) 优于通用小时级表</p>
+            </div>
+            <span class="card-badge cb-ok">✓ 裁决完成</span>
+            <span class="chevron">›</span>
+          </div>
+          <div class="card-body">
+            <div class="dgrid" style="grid-template-columns:repeat(2,1fr)">
+              <div class="dcell"><div class="dcell-k">候选表1（采用）</div><div class="dcell-v dv-g" style="font-size:12px">dw_tfc_elmt_eps_ug_di</div></div>
+              <div class="dcell"><div class="dcell-k">候选表2（放弃）</div><div class="dcell-v dv-r" style="font-size:12px">dw_tfc_elmt_eps_hi</div></div>
+            </div>
+            <div class="diff-strip">
+              <div class="diff-title">选表依据</div>
+              <div class="diff-row"><span class="diff-loc">专属性</span><span class="diff-from">通用流量表</span><span class="diff-arr">→</span><span class="diff-to">用增专属(_ug_)，优先级更高</span></div>
+              <div class="diff-row"><span class="diff-loc">粒度</span><span class="diff-from">小时级(_hi)+func_channel必填</span><span class="diff-arr">→</span><span class="diff-to">天级(_di)，IO更小</span></div>
+              <div class="diff-row"><span class="diff-loc">page_tp字段</span><span class="diff-compat">✓ 含 page_tp · 用户明确指定 page_tp='2'</span></div>
+              <div class="diff-row"><span class="diff-loc">团长字段</span><span class="diff-compat">✓ 含 page_param.groupid · 团长识别有据</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="card open">
+          <div class="card-head" onclick="tog(this)">
+            <div class="card-icon ci-teal">⚡</div>
+            <div class="card-titles">
+              <h4>步骤5 · SQL生成 & 自动校验</h4>
+              <p>Hive SQL · 5个CTE · sql-validator.py V3.1 通过</p>
+            </div>
+            <span class="card-badge cb-ok">✓ 校验通过</span>
+            <span class="chevron">›</span>
+          </div>
+          <div class="card-body">
+            <div class="vblock">
+              <div class="vhead"><span>sql-validator.py V3.1 · /tmp/temp-sql.sql</span></div>
+              <div class="vrow"><span class="vtag vt-warn">WARN</span><span class="vmsg">建议过滤测试用户 dim.dim_test_users → 该表未收录数据字典，<strong style="color:var(--amber)">跳过此WARN</strong></span></div>
+              <div class="vrow" style="background:rgba(0,229,160,.03)"><span class="vtag vt-ok">PASS</span><span class="vmsg">无 ERROR · 允许输出</span></div>
+            </div>
+            <div class="sql-wrap">
+              <div class="sql-tabs">
+                <button class="stab on" onclick="stab(this,'c1-hive')">🌿 Hive SQL</button>
+              </div>
+              <div class="spane on" id="pane-c1-hive">
+                <div class="codebox">
+                  <div class="codebox-bar">
+                    <span class="codebox-eng">ENGINE: Hive · 数据范围 20260526~20260602 · 日×组单位</span>
+                    <button class="copybtn" onclick="cp('c1h',this)">📋 复制</button>
+                  </div>
+                  <pre><code id="c1h" class="language-sql">WITH
+-- 步骤1a：实验组团长首屏首次曝光
+exp_first_screen AS (
+    SELECT
+        dt,
+        CAST(member_id AS STRING)                    AS member_id,
+        &#x27;实验组&#x27;                                      AS exp_group,
+        MIN(log_timestamp)                            AS first_screen_ts
+    FROM dw.dw_tfc_elmt_eps_ug_di
+    WHERE dt BETWEEN &#x27;20260526&#x27; AND &#x27;20260602&#x27;
+      AND p_game_tp = &#x27;106&#x27;
+      AND site_tp   = &#x27;shein&#x27;
+      AND game_tp   = 106
+      AND page_tp   = &#x27;2&#x27;
+      AND event_nm  = &#x27;expose_popup_selectattr&#x27;
+      AND get_json_object(activity_param,&#x27;$.popup_type&#x27;)       = &#x27;groupbuycountdown_begin&#x27;
+      AND get_json_object(activity_param,&#x27;$.groupbuycountdown&#x27;) IN (&#x27;A&#x27;,&#x27;B&#x27;)
+      AND COALESCE(get_json_object(page_param,&#x27;$.groupid&#x27;),&#x27;&#x27;) = &#x27;&#x27;  -- 团长
+      AND member_id IS NOT NULL AND member_id &gt; 0
+    GROUP BY dt, CAST(member_id AS STRING)
+),
+-- 步骤1b：对照组团长首屏首次曝光
+ctrl_first_screen AS (
+    SELECT dt, CAST(member_id AS STRING) AS member_id,
+           &#x27;对照组&#x27; AS exp_group, MIN(log_timestamp) AS first_screen_ts
+    FROM dw.dw_tfc_elmt_eps_ug_di
+    WHERE dt BETWEEN &#x27;20260526&#x27; AND &#x27;20260602&#x27;
+      AND p_game_tp=&#x27;106&#x27; AND site_tp=&#x27;shein&#x27; AND game_tp=106 AND page_tp=&#x27;2&#x27;
+      AND event_nm=&#x27;expose_popup_selectattr&#x27;
+      AND get_json_object(activity_param,&#x27;$.popup_type&#x27;)=&#x27;groupbuyfreeshipping&#x27;
+      AND COALESCE(get_json_object(page_param,&#x27;$.groupid&#x27;),&#x27;&#x27;)=&#x27;&#x27;
+      AND member_id IS NOT NULL AND member_id &gt; 0
+    GROUP BY dt, CAST(member_id AS STRING)
+),
+all_first_screen AS (
+    SELECT dt,member_id,exp_group,first_screen_ts FROM exp_first_screen
+    UNION ALL
+    SELECT dt,member_id,exp_group,first_screen_ts FROM ctrl_first_screen
+),
+-- 步骤2：立即购曝光明细
+orderdrawer_detail AS (
+    SELECT dt, CAST(member_id AS STRING) AS member_id, log_timestamp AS orderdrawer_ts
+    FROM dw.dw_tfc_elmt_eps_ug_di
+    WHERE dt BETWEEN &#x27;20260526&#x27; AND &#x27;20260602&#x27;
+      AND p_game_tp=&#x27;106&#x27; AND site_tp=&#x27;shein&#x27; AND game_tp=106 AND page_tp=&#x27;2&#x27;
+      AND event_nm=&#x27;expose_popup_selectattr&#x27;
+      AND get_json_object(activity_param,&#x27;$.popup_type&#x27;)=&#x27;orderdrawer&#x27;
+      AND COALESCE(get_json_object(page_param,&#x27;$.groupid&#x27;),&#x27;&#x27;)=&#x27;&#x27;
+      AND member_id IS NOT NULL AND member_id &gt; 0
+),
+-- 步骤3：计算时间间隔（秒）
+user_interval AS (
+    SELECT f.dt, f.exp_group, f.member_id,
+           CAST(MIN(o.orderdrawer_ts)-f.first_screen_ts AS DOUBLE)/1000.0 AS interval_sec
+    FROM all_first_screen f
+    INNER JOIN orderdrawer_detail o
+        ON f.dt=o.dt AND f.member_id=o.member_id
+        AND o.orderdrawer_ts &gt; f.first_screen_ts
+    GROUP BY f.dt,f.exp_group,f.member_id,f.first_screen_ts
+),
+-- 步骤4：NTILE(10) 按日×组分桶
+user_ntile AS (
+    SELECT dt,exp_group,member_id,interval_sec,
+           NTILE(10) OVER(PARTITION BY dt,exp_group ORDER BY interval_sec ASC) AS ntile_bucket
+    FROM user_interval
+)
+SELECT
+    dt, exp_group,
+    CONCAT(CAST(ntile_bucket*10 AS STRING),&#x27;分位&#x27;)         AS percentile_group,
+    ROUND(AVG(interval_sec),2)                             AS avg_interval_sec,
+    ROUND(PERCENTILE_APPROX(interval_sec,0.5),2)           AS median_interval_sec,
+    ROUND(MIN(interval_sec),2)                             AS min_interval_sec,
+    ROUND(MAX(interval_sec),2)                             AS max_interval_sec,
+    COUNT(DISTINCT member_id)                              AS captain_cnt
+FROM user_ntile
+GROUP BY dt,exp_group,ntile_bucket
+ORDER BY dt,exp_group,ntile_bucket;</code></pre>
+                </div>
+              </div>
+            </div>
+            <div style="margin-top:18px;padding:16px 20px;background:var(--ink3);border:1px solid var(--line2);border-radius:12px;">
+              <div style="font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--mist);margin-bottom:12px;">🔧 步骤7 · SQL执行引擎选择</div>
+              <div style="display:flex;flex-direction:column;gap:7px;">
+                <div style="display:flex;align-items:center;gap:10px;padding:9px 14px;background:var(--ink);border:1px solid var(--line);border-radius:8px;">
+                  <span style="font-family:var(--mono);font-size:12px;color:var(--mist);font-weight:600;min-width:18px;">1</span>
+                  <span style="font-size:13px;color:var(--smoke);">不修改（保持 Hive 格式）</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:10px;padding:9px 14px;background:var(--ink);border:1px solid var(--line);border-radius:8px;">
+                  <span style="font-family:var(--mono);font-size:12px;color:var(--mist);font-weight:600;min-width:18px;">2</span>
+                  <span style="font-size:13px;color:var(--smoke);">转换为 Spark SQL</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:10px;padding:9px 14px;background:var(--acc-dim);border:1px solid var(--acc-bdr);border-radius:8px;">
+                  <span style="font-family:var(--mono);font-size:12px;color:var(--accent);font-weight:700;min-width:18px;">3</span>
+                  <span style="font-size:13px;color:#fff;font-weight:500;">转换为 Trino SQL</span>
+                  <span style="margin-left:auto;font-family:var(--mono);font-size:10px;padding:2px 8px;background:var(--acc-bdr);border-radius:4px;color:var(--accent);">用户已选择</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ TURN 2: 转换 Trino ═══ -->
+  <div class="divider fi">
+    <div class="divider-line"></div>
+    <div class="divider-label">// 需求二 · 转换 Trino SQL</div>
+    <div class="divider-line"></div>
+  </div>
+  <div class="turn fi">
+    <div class="msg-user">
+      <div class="av av-u">我</div>
+      <div class="bubble-u">3（转换为 Trino SQL）</div>
+    </div>
+    <div class="msg-ai" style="margin-top:14px">
+      <div class="av av-ai">AI</div>
+      <div class="ai-body">
+        <div class="ai-header">
+          <span class="ai-name">Claude · 方言转换</span>
+          <span class="ai-step-tag">步骤7 · Hive → Trino</span>
+        </div>
+        <div class="card open">
+          <div class="card-head" onclick="tog(this)">
+            <div class="card-icon ci-blue">⚡</div>
+            <div class="card-titles">
+              <h4>Hive → Trino 转换规则逐条执行</h4>
+              <p>加载 sql-dialect-rules.md · 3处语法改动 · 其余全部兼容</p>
+            </div>
+            <span class="card-badge cb-ok">✓ 3处改动</span>
+            <span class="chevron">›</span>
+          </div>
+          <div class="card-body">
+            <div class="diff-strip">
+              <div class="diff-title">语法改动清单</div>
+              <div class="diff-row"><span class="diff-loc">类型转换</span><span class="diff-from">CAST(... AS STRING)</span><span class="diff-arr">→</span><span class="diff-to">CAST(... AS VARCHAR)</span></div>
+              <div class="diff-row"><span class="diff-loc">JSON提取</span><span class="diff-from">GET_JSON_OBJECT(field,'$.key')</span><span class="diff-arr">→</span><span class="diff-to">JSON_EXTRACT_SCALAR(field,'$.key')</span></div>
+              <div class="diff-row"><span class="diff-loc">近似中位数</span><span class="diff-from">PERCENTILE_APPROX(col,0.5)</span><span class="diff-arr">→</span><span class="diff-to">APPROX_PERCENTILE(col,0.5)</span></div>
+              <div class="diff-row"><span class="diff-loc">CTE / NTILE / ROUND / COALESCE</span><span class="diff-compat">✓ 全部兼容，禁止改动</span></div>
+            </div>
+            <div class="vblock" style="margin-top:12px">
+              <div class="vhead"><span>sql-validator.py V3.1 · /tmp/temp-sql-converted.sql</span></div>
+              <div class="vrow"><span class="vtag vt-skip">SKIP</span><span class="vmsg">dim_test_users 未收录 · 跳过</span></div>
+              <div class="vrow" style="background:rgba(0,229,160,.03)"><span class="vtag vt-ok">PASS</span><span class="vmsg">转换后无 ERROR · 允许输出</span></div>
+            </div>
+            <div class="sql-wrap" style="margin-top:14px">
+              <div class="sql-tabs">
+                <button class="stab on" onclick="stab(this,'c2-trino')">⚡ Trino SQL（团长版 · 转换完成）</button>
+              </div>
+              <div class="spane on" id="pane-c2-trino">
+                <div class="codebox">
+                  <div class="codebox-bar">
+                    <span class="codebox-eng">ENGINE: Trino SQL · 数据范围 20260526~20260602 · 日×组单位 · 仅团长</span>
+                    <button class="copybtn" onclick="cp('c2t',this)">📋 复制</button>
+                  </div>
+                  <pre><code id="c2t" class="language-sql">-- =============================================
+-- 需求：拼团游戏AB实验→团长首屏→立即购时间间隔分位分析
+-- 执行引擎：Trino SQL
+-- 数据范围：20260526 ~ 20260602
+-- 转换说明：CAST AS STRING→VARCHAR · GET_JSON_OBJECT→JSON_EXTRACT_SCALAR
+--           PERCENTILE_APPROX→APPROX_PERCENTILE
+-- =============================================
+WITH
+-- 步骤1a：实验组团长首屏首次曝光
+exp_first_screen AS (
+    SELECT
+        dt,
+        CAST(member_id AS VARCHAR)                                           AS member_id,
+        &#x27;实验组&#x27;                                                              AS exp_group,
+        MIN(log_timestamp)                                                    AS first_screen_ts
+    FROM dw.dw_tfc_elmt_eps_ug_di
+    WHERE dt BETWEEN &#x27;20260526&#x27; AND &#x27;20260602&#x27;
+      AND p_game_tp = &#x27;106&#x27;
+      AND site_tp   = &#x27;shein&#x27;
+      AND game_tp   = 106
+      AND page_tp   = &#x27;2&#x27;
+      AND event_nm  = &#x27;expose_popup_selectattr&#x27;
+      AND JSON_EXTRACT_SCALAR(activity_param, &#x27;$.popup_type&#x27;)       = &#x27;groupbuycountdown_begin&#x27;
+      AND JSON_EXTRACT_SCALAR(activity_param, &#x27;$.groupbuycountdown&#x27;) IN (&#x27;A&#x27;, &#x27;B&#x27;)
+      AND COALESCE(JSON_EXTRACT_SCALAR(page_param, &#x27;$.groupid&#x27;), &#x27;&#x27;) = &#x27;&#x27;    -- 团长
+      AND member_id IS NOT NULL AND member_id &gt; 0
+    GROUP BY dt, CAST(member_id AS VARCHAR)
+),
+-- 步骤1b：对照组团长首屏首次曝光
+ctrl_first_screen AS (
+    SELECT
+        dt, CAST(member_id AS VARCHAR) AS member_id,
+        &#x27;对照组&#x27; AS exp_group, MIN(log_timestamp) AS first_screen_ts
+    FROM dw.dw_tfc_elmt_eps_ug_di
+    WHERE dt BETWEEN &#x27;20260526&#x27; AND &#x27;20260602&#x27;
+      AND p_game_tp=&#x27;106&#x27; AND site_tp=&#x27;shein&#x27; AND game_tp=106 AND page_tp=&#x27;2&#x27;
+      AND event_nm=&#x27;expose_popup_selectattr&#x27;
+      AND JSON_EXTRACT_SCALAR(activity_param,&#x27;$.popup_type&#x27;) = &#x27;groupbuyfreeshipping&#x27;
+      AND COALESCE(JSON_EXTRACT_SCALAR(page_param,&#x27;$.groupid&#x27;),&#x27;&#x27;) = &#x27;&#x27;
+      AND member_id IS NOT NULL AND member_id &gt; 0
+    GROUP BY dt, CAST(member_id AS VARCHAR)
+),
+all_first_screen AS (
+    SELECT dt,member_id,exp_group,first_screen_ts FROM exp_first_screen
+    UNION ALL
+    SELECT dt,member_id,exp_group,first_screen_ts FROM ctrl_first_screen
+),
+-- 步骤2：立即购曝光明细（团长）
+orderdrawer_detail AS (
+    SELECT dt, CAST(member_id AS VARCHAR) AS member_id, log_timestamp AS orderdrawer_ts
+    FROM dw.dw_tfc_elmt_eps_ug_di
+    WHERE dt BETWEEN &#x27;20260526&#x27; AND &#x27;20260602&#x27;
+      AND p_game_tp=&#x27;106&#x27; AND site_tp=&#x27;shein&#x27; AND game_tp=106 AND page_tp=&#x27;2&#x27;
+      AND event_nm=&#x27;expose_popup_selectattr&#x27;
+      AND JSON_EXTRACT_SCALAR(activity_param,&#x27;$.popup_type&#x27;) = &#x27;orderdrawer&#x27;
+      AND COALESCE(JSON_EXTRACT_SCALAR(page_param,&#x27;$.groupid&#x27;),&#x27;&#x27;) = &#x27;&#x27;
+      AND member_id IS NOT NULL AND member_id &gt; 0
+),
+-- 步骤3：计算时间间隔（秒），立即购须在首屏之后
+user_interval AS (
+    SELECT f.dt, f.exp_group, f.member_id,
+           CAST(MIN(o.orderdrawer_ts)-f.first_screen_ts AS DOUBLE)/1000.0 AS interval_sec
+    FROM all_first_screen f
+    INNER JOIN orderdrawer_detail o
+        ON f.dt=o.dt AND f.member_id=o.member_id
+        AND o.orderdrawer_ts &gt; f.first_screen_ts
+    GROUP BY f.dt,f.exp_group,f.member_id,f.first_screen_ts
+),
+-- 步骤4：NTILE(10) 按日×组分桶
+user_ntile AS (
+    SELECT dt,exp_group,member_id,interval_sec,
+           NTILE(10) OVER(PARTITION BY dt,exp_group ORDER BY interval_sec ASC) AS ntile_bucket
+    FROM user_interval
+)
+SELECT
+    dt,
+    exp_group,
+    CONCAT(CAST(ntile_bucket*10 AS VARCHAR),&#x27;分位&#x27;)          AS percentile_group,
+    ROUND(AVG(interval_sec),2)                               AS avg_interval_sec,
+    ROUND(APPROX_PERCENTILE(interval_sec,0.5),2)             AS median_interval_sec,
+    ROUND(MIN(interval_sec),2)                               AS min_interval_sec,
+    ROUND(MAX(interval_sec),2)                               AS max_interval_sec,
+    COUNT(DISTINCT member_id)                                AS captain_cnt
+FROM user_ntile
+GROUP BY dt,exp_group,ntile_bucket
+ORDER BY dt,exp_group,ntile_bucket;</code></pre>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ TURN 3: 增加用户身份 ═══ -->
+  <div class="divider fi">
+    <div class="divider-line"></div>
+    <div class="divider-label">// 需求三 · 增加用户身份维度（团长/团员）</div>
+    <div class="divider-line"></div>
+  </div>
+  <div class="turn fi">
+    <div class="msg-user">
+      <div class="av av-u">我</div>
+      <div class="bubble-u">
+        刚刚获取的是团长的数据，现在需要修改一个需求，<strong>增加一个字段：用户身份（团长/团员）</strong>，其他不变
+      </div>
+    </div>
+    <div class="msg-ai" style="margin-top:14px">
+      <div class="av av-ai">AI</div>
+      <div class="ai-body">
+        <div class="ai-header">
+          <span class="ai-name">Claude · 迭代修改</span>
+          <span class="ai-step-tag">在 Trino 版本上直接修改</span>
+        </div>
+        <div class="think-strip">
+          <div class="think-dots"><span></span><span></span><span></span></div>
+          需求明确 · 直接推断 · 无需确认 · 6处改动点已识别
+        </div>
+        <div class="card open">
+          <div class="card-head" onclick="tog(this)">
+            <div class="card-icon ci-rose">🔧</div>
+            <div class="card-titles">
+              <h4>改动分析 · 6处精确修改</h4>
+              <p>移除团长过滤 · 新增CASE WHEN识别角色 · NTILE加user_role维度</p>
+            </div>
+            <span class="card-badge cb-info">精确改动</span>
+            <span class="chevron">›</span>
+          </div>
+          <div class="card-body">
+            <div class="diff-strip">
+              <div class="diff-title">改动清单</div>
+              <div class="diff-row"><span class="diff-loc">步骤1a/1b WHERE</span><span class="diff-from">COALESCE(groupid,'')=''（团长过滤）</span><span class="diff-arr">→</span><span class="diff-to">移除，不再限制角色</span></div>
+              <div class="diff-row"><span class="diff-loc">步骤1a/1b SELECT</span><span class="diff-from">无 user_role 字段</span><span class="diff-arr">→</span><span class="diff-to">新增 CASE WHEN groupid='' THEN '团长' ELSE '团员' END</span></div>
+              <div class="diff-row"><span class="diff-loc">步骤2 立即购</span><span class="diff-from">无角色字段</span><span class="diff-arr">→</span><span class="diff-to">新增同样的 user_role CASE WHEN</span></div>
+              <div class="diff-row"><span class="diff-loc">步骤3 JOIN条件</span><span class="diff-from">无角色配对</span><span class="diff-arr">→</span><span class="diff-to">AND f.user_role=o.user_role（防跨角色匹配）</span></div>
+              <div class="diff-row"><span class="diff-loc">步骤4 NTILE</span><span class="diff-from">PARTITION BY dt,exp_group</span><span class="diff-arr">→</span><span class="diff-to">PARTITION BY dt,exp_group,<strong>user_role</strong>（各自独立分桶）</span></div>
+              <div class="diff-row"><span class="diff-loc">步骤5 输出</span><span class="diff-from">captain_cnt</span><span class="diff-arr">→</span><span class="diff-to">新增 user_role 维度 · user_cnt</span></div>
+            </div>
+            <div style="margin-top:12px">
+              <div class="schema-cols">
+                <span class="scol key">dt</span>
+                <span class="scol key">exp_group</span>
+                <span class="scol new">user_role 🆕</span>
+                <span class="scol">percentile_group</span>
+                <span class="scol">avg_interval_sec</span>
+                <span class="scol">median_interval_sec</span>
+                <span class="scol">min_interval_sec</span>
+                <span class="scol">max_interval_sec</span>
+                <span class="scol">user_cnt</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="card open">
+          <div class="card-head" onclick="tog(this)">
+            <div class="card-icon ci-teal">⚡</div>
+            <div class="card-titles">
+              <h4>修改后 Trino SQL · 含团长/团员维度</h4>
+              <p>7个CTE · 日×组×角色分桶 · 校验通过</p>
+            </div>
+            <span class="card-badge cb-ok">✓ 校验通过</span>
+            <span class="chevron">›</span>
+          </div>
+          <div class="card-body">
+            <div class="vblock">
+              <div class="vhead"><span>sql-validator.py V3.1 · 修改后版本</span></div>
+              <div class="vrow"><span class="vtag vt-skip">SKIP</span><span class="vmsg">dim_test_users 未收录 · 跳过</span></div>
+              <div class="vrow" style="background:rgba(0,229,160,.03)"><span class="vtag vt-ok">PASS</span><span class="vmsg">无 ERROR · 允许输出</span></div>
+            </div>
+            <div class="sql-wrap">
+              <div class="sql-tabs">
+                <button class="stab on" onclick="stab(this,'c3-trino')">⚡ Trino SQL（团长+团员版）</button>
+              </div>
+              <div class="spane on" id="pane-c3-trino">
+                <div class="codebox">
+                  <div class="codebox-bar">
+                    <span class="codebox-eng">ENGINE: Trino · 日×实验组别×用户身份 · 20260526~20260602</span>
+                    <button class="copybtn" onclick="cp('c3t',this)">📋 复制</button>
+                  </div>
+                  <pre><code id="c3t" class="language-sql">WITH
+-- 步骤1a：实验组首屏首次曝光（团长+团员）
+exp_first_screen AS (
+    SELECT
+        dt,
+        CAST(member_id AS VARCHAR)                                          AS member_id,
+        &#x27;实验组&#x27;                                                             AS exp_group,
+        CASE WHEN COALESCE(JSON_EXTRACT_SCALAR(page_param,&#x27;$.groupid&#x27;),&#x27;&#x27;)=&#x27;&#x27;
+             THEN &#x27;团长&#x27; ELSE &#x27;团员&#x27; END                                     AS user_role,
+        MIN(log_timestamp)                                                   AS first_screen_ts
+    FROM dw.dw_tfc_elmt_eps_ug_di
+    WHERE dt BETWEEN &#x27;20260526&#x27; AND &#x27;20260602&#x27;
+      AND p_game_tp=&#x27;106&#x27; AND site_tp=&#x27;shein&#x27; AND game_tp=106 AND page_tp=&#x27;2&#x27;
+      AND event_nm=&#x27;expose_popup_selectattr&#x27;
+      AND JSON_EXTRACT_SCALAR(activity_param,&#x27;$.popup_type&#x27;)=&#x27;groupbuycountdown_begin&#x27;
+      AND JSON_EXTRACT_SCALAR(activity_param,&#x27;$.groupbuycountdown&#x27;) IN (&#x27;A&#x27;,&#x27;B&#x27;)
+      AND member_id IS NOT NULL AND member_id &gt; 0
+    GROUP BY dt, CAST(member_id AS VARCHAR),
+             CASE WHEN COALESCE(JSON_EXTRACT_SCALAR(page_param,&#x27;$.groupid&#x27;),&#x27;&#x27;)=&#x27;&#x27;
+                  THEN &#x27;团长&#x27; ELSE &#x27;团员&#x27; END
+),
+-- 步骤1b：对照组首屏首次曝光（团长+团员）
+ctrl_first_screen AS (
+    SELECT
+        dt, CAST(member_id AS VARCHAR) AS member_id, &#x27;对照组&#x27; AS exp_group,
+        CASE WHEN COALESCE(JSON_EXTRACT_SCALAR(page_param,&#x27;$.groupid&#x27;),&#x27;&#x27;)=&#x27;&#x27;
+             THEN &#x27;团长&#x27; ELSE &#x27;团员&#x27; END AS user_role,
+        MIN(log_timestamp) AS first_screen_ts
+    FROM dw.dw_tfc_elmt_eps_ug_di
+    WHERE dt BETWEEN &#x27;20260526&#x27; AND &#x27;20260602&#x27;
+      AND p_game_tp=&#x27;106&#x27; AND site_tp=&#x27;shein&#x27; AND game_tp=106 AND page_tp=&#x27;2&#x27;
+      AND event_nm=&#x27;expose_popup_selectattr&#x27;
+      AND JSON_EXTRACT_SCALAR(activity_param,&#x27;$.popup_type&#x27;)=&#x27;groupbuyfreeshipping&#x27;
+      AND member_id IS NOT NULL AND member_id &gt; 0
+    GROUP BY dt, CAST(member_id AS VARCHAR),
+             CASE WHEN COALESCE(JSON_EXTRACT_SCALAR(page_param,&#x27;$.groupid&#x27;),&#x27;&#x27;)=&#x27;&#x27;
+                  THEN &#x27;团长&#x27; ELSE &#x27;团员&#x27; END
+),
+all_first_screen AS (
+    SELECT dt,member_id,exp_group,user_role,first_screen_ts FROM exp_first_screen
+    UNION ALL
+    SELECT dt,member_id,exp_group,user_role,first_screen_ts FROM ctrl_first_screen
+),
+-- 步骤2：立即购曝光明细（含 user_role 供角色配对）
+orderdrawer_detail AS (
+    SELECT
+        dt, CAST(member_id AS VARCHAR) AS member_id,
+        CASE WHEN COALESCE(JSON_EXTRACT_SCALAR(page_param,&#x27;$.groupid&#x27;),&#x27;&#x27;)=&#x27;&#x27;
+             THEN &#x27;团长&#x27; ELSE &#x27;团员&#x27; END AS user_role,
+        log_timestamp AS orderdrawer_ts
+    FROM dw.dw_tfc_elmt_eps_ug_di
+    WHERE dt BETWEEN &#x27;20260526&#x27; AND &#x27;20260602&#x27;
+      AND p_game_tp=&#x27;106&#x27; AND site_tp=&#x27;shein&#x27; AND game_tp=106 AND page_tp=&#x27;2&#x27;
+      AND event_nm=&#x27;expose_popup_selectattr&#x27;
+      AND JSON_EXTRACT_SCALAR(activity_param,&#x27;$.popup_type&#x27;)=&#x27;orderdrawer&#x27;
+      AND member_id IS NOT NULL AND member_id &gt; 0
+),
+-- 步骤3：计算时间间隔（按角色配对，防止团长首屏匹配到团员立即购）
+user_interval AS (
+    SELECT f.dt, f.exp_group, f.user_role, f.member_id,
+           CAST(MIN(o.orderdrawer_ts)-f.first_screen_ts AS DOUBLE)/1000.0 AS interval_sec
+    FROM all_first_screen f
+    INNER JOIN orderdrawer_detail o
+        ON f.dt=o.dt AND f.member_id=o.member_id
+        AND f.user_role=o.user_role                -- ✓ 按角色配对
+        AND o.orderdrawer_ts &gt; f.first_screen_ts
+    GROUP BY f.dt,f.exp_group,f.user_role,f.member_id,f.first_screen_ts
+),
+-- 步骤4：NTILE(10) 按日×组×角色各自独立分桶
+user_ntile AS (
+    SELECT dt,exp_group,user_role,member_id,interval_sec,
+           NTILE(10) OVER(PARTITION BY dt,exp_group,user_role
+                          ORDER BY interval_sec ASC) AS ntile_bucket
+    FROM user_interval
+)
+SELECT
+    dt, exp_group, user_role,
+    CONCAT(CAST(ntile_bucket*10 AS VARCHAR),&#x27;分位&#x27;)         AS percentile_group,
+    ROUND(AVG(interval_sec),2)                              AS avg_interval_sec,
+    ROUND(APPROX_PERCENTILE(interval_sec,0.5),2)            AS median_interval_sec,
+    ROUND(MIN(interval_sec),2)                              AS min_interval_sec,
+    ROUND(MAX(interval_sec),2)                              AS max_interval_sec,
+    COUNT(DISTINCT member_id)                               AS user_cnt
+FROM user_ntile
+GROUP BY dt,exp_group,user_role,ntile_bucket
+ORDER BY dt,exp_group,user_role,ntile_bucket;</code></pre>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ TURN 4: 跨日汇总 ═══ -->
+  <div class="divider fi">
+    <div class="divider-line"></div>
+    <div class="divider-label">// 需求四 · 去掉日期维度，跨日汇总</div>
+    <div class="divider-line"></div>
+  </div>
+  <div class="turn fi">
+    <div class="msg-user">
+      <div class="av av-u">我</div>
+      <div class="bubble-u">
+        现在在刚刚需求不变的情况下，我想<strong>根据日期汇总数据</strong>，汇总逻辑是按照<strong>用户+天去计算</strong>，输出字段：实验组别、用户身份、分位段、间隔时长平均值、中位数、最小值、最大值、用户数（<strong>用户+天去重</strong>）
+      </div>
+    </div>
+    <div class="msg-ai" style="margin-top:14px">
+      <div class="av av-ai">AI</div>
+      <div class="ai-body">
+        <div class="ai-header">
+          <span class="ai-name">Claude · 迭代修改</span>
+          <span class="ai-step-tag">跨日汇总版</span>
+        </div>
+        <div class="think-strip">
+          <div class="think-dots"><span></span><span></span><span></span></div>
+          需求明确 · 直接推断 · 3处精确修改 · 步骤1~3完全不变
+        </div>
+        <div class="card open">
+          <div class="card-head" onclick="tog(this)">
+            <div class="card-icon ci-amb">🔧</div>
+            <div class="card-titles">
+              <h4>改动分析 · 3处精确修改</h4>
+              <p>NTILE去掉dt · 输出去掉dt · user_cnt改为用户+天去重</p>
+            </div>
+            <span class="card-badge cb-info">精确改动</span>
+            <span class="chevron">›</span>
+          </div>
+          <div class="card-body">
+            <div class="diff-strip">
+              <div class="diff-title">改动清单（步骤1~3完全不变）</div>
+              <div class="diff-row"><span class="diff-loc">步骤4 NTILE</span><span class="diff-from">PARTITION BY dt,exp_group,user_role</span><span class="diff-arr">→</span><span class="diff-to">PARTITION BY exp_group,user_role（去掉dt，跨日整体分桶）</span></div>
+              <div class="diff-row"><span class="diff-loc">步骤5 GROUP BY</span><span class="diff-from">dt,exp_group,user_role,ntile_bucket</span><span class="diff-arr">→</span><span class="diff-to">exp_group,user_role,ntile_bucket（输出不含日期）</span></div>
+              <div class="diff-row"><span class="diff-loc">user_cnt</span><span class="diff-from">COUNT(DISTINCT member_id)</span><span class="diff-arr">→</span><span class="diff-to">COUNT(DISTINCT CONCAT(dt,'_',member_id))（用户+天去重）</span></div>
+            </div>
+            <div class="prose" style="margin-top:12px">
+              <strong>💡 用户+天去重的含义</strong>：同一用户若在 5月26日和5月27日各完成一次首屏→立即购路径，计为 <strong style="color:var(--accent)">2个数据点（user_cnt=2）</strong>，分位段统计量也基于这2条间隔记录分别计算，符合业务语义。
+            </div>
+            <div style="margin-top:12px">
+              <div class="schema-cols">
+                <span class="scol key">exp_group</span>
+                <span class="scol key">user_role</span>
+                <span class="scol">percentile_group</span>
+                <span class="scol">avg_interval_sec</span>
+                <span class="scol">median_interval_sec</span>
+                <span class="scol">min_interval_sec</span>
+                <span class="scol">max_interval_sec</span>
+                <span class="scol new">user_cnt（用户+天）</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="card open">
+          <div class="card-head" onclick="tog(this)">
+            <div class="card-icon ci-teal">⚡</div>
+            <div class="card-titles">
+              <h4>最终 Trino SQL · 跨日汇总版</h4>
+              <p>7个CTE · 跨日整体分桶 · 用户+天去重 · 校验通过</p>
+            </div>
+            <span class="card-badge cb-ok">✓ 最终版本</span>
+            <span class="chevron">›</span>
+          </div>
+          <div class="card-body">
+            <div class="vblock">
+              <div class="vhead"><span>sql-validator.py V3.1 · 最终版 · /tmp/temp-sql-converted.sql</span></div>
+              <div class="vrow"><span class="vtag vt-skip">SKIP</span><span class="vmsg">dim_test_users 未收录 · 跳过</span></div>
+              <div class="vrow" style="background:rgba(0,229,160,.03)"><span class="vtag vt-ok">PASS</span><span class="vmsg">无 ERROR · 允许输出</span></div>
+            </div>
+            <div class="sql-wrap">
+              <div class="sql-tabs">
+                <button class="stab on" onclick="stab(this,'c4-final')">⚡ Trino SQL（最终版 · 跨日汇总）</button>
+              </div>
+              <div class="spane on" id="pane-c4-final">
+                <div class="codebox">
+                  <div class="codebox-bar">
+                    <span class="codebox-eng">ENGINE: Trino · 跨日汇总 · user+天去重 · 20260526~20260602</span>
+                    <button class="copybtn" onclick="cp('c4f',this)">📋 复制</button>
+                  </div>
+                  <pre><code id="c4f" class="language-sql">WITH
+-- 步骤1a：实验组首屏首次曝光（按 dt+user+role 粒度）
+exp_first_screen AS (
+    SELECT
+        dt,
+        CAST(member_id AS VARCHAR)                                          AS member_id,
+        &#x27;实验组&#x27;                                                             AS exp_group,
+        CASE WHEN COALESCE(JSON_EXTRACT_SCALAR(page_param,&#x27;$.groupid&#x27;),&#x27;&#x27;)=&#x27;&#x27;
+             THEN &#x27;团长&#x27; ELSE &#x27;团员&#x27; END                                     AS user_role,
+        MIN(log_timestamp)                                                   AS first_screen_ts
+    FROM dw.dw_tfc_elmt_eps_ug_di
+    WHERE dt BETWEEN &#x27;20260526&#x27; AND &#x27;20260602&#x27;
+      AND p_game_tp=&#x27;106&#x27; AND site_tp=&#x27;shein&#x27; AND game_tp=106 AND page_tp=&#x27;2&#x27;
+      AND event_nm=&#x27;expose_popup_selectattr&#x27;
+      AND JSON_EXTRACT_SCALAR(activity_param,&#x27;$.popup_type&#x27;)=&#x27;groupbuycountdown_begin&#x27;
+      AND JSON_EXTRACT_SCALAR(activity_param,&#x27;$.groupbuycountdown&#x27;) IN (&#x27;A&#x27;,&#x27;B&#x27;)
+      AND member_id IS NOT NULL AND member_id &gt; 0
+    GROUP BY dt, CAST(member_id AS VARCHAR),
+             CASE WHEN COALESCE(JSON_EXTRACT_SCALAR(page_param,&#x27;$.groupid&#x27;),&#x27;&#x27;)=&#x27;&#x27;
+                  THEN &#x27;团长&#x27; ELSE &#x27;团员&#x27; END
+),
+-- 步骤1b：对照组首屏首次曝光（按 dt+user+role 粒度）
+ctrl_first_screen AS (
+    SELECT
+        dt, CAST(member_id AS VARCHAR) AS member_id, &#x27;对照组&#x27; AS exp_group,
+        CASE WHEN COALESCE(JSON_EXTRACT_SCALAR(page_param,&#x27;$.groupid&#x27;),&#x27;&#x27;)=&#x27;&#x27;
+             THEN &#x27;团长&#x27; ELSE &#x27;团员&#x27; END AS user_role,
+        MIN(log_timestamp) AS first_screen_ts
+    FROM dw.dw_tfc_elmt_eps_ug_di
+    WHERE dt BETWEEN &#x27;20260526&#x27; AND &#x27;20260602&#x27;
+      AND p_game_tp=&#x27;106&#x27; AND site_tp=&#x27;shein&#x27; AND game_tp=106 AND page_tp=&#x27;2&#x27;
+      AND event_nm=&#x27;expose_popup_selectattr&#x27;
+      AND JSON_EXTRACT_SCALAR(activity_param,&#x27;$.popup_type&#x27;)=&#x27;groupbuyfreeshipping&#x27;
+      AND member_id IS NOT NULL AND member_id &gt; 0
+    GROUP BY dt, CAST(member_id AS VARCHAR),
+             CASE WHEN COALESCE(JSON_EXTRACT_SCALAR(page_param,&#x27;$.groupid&#x27;),&#x27;&#x27;)=&#x27;&#x27;
+                  THEN &#x27;团长&#x27; ELSE &#x27;团员&#x27; END
+),
+all_first_screen AS (
+    SELECT dt,member_id,exp_group,user_role,first_screen_ts FROM exp_first_screen
+    UNION ALL
+    SELECT dt,member_id,exp_group,user_role,first_screen_ts FROM ctrl_first_screen
+),
+-- 步骤2：立即购曝光明细（含 user_role 供角色配对）
+orderdrawer_detail AS (
+    SELECT
+        dt, CAST(member_id AS VARCHAR) AS member_id,
+        CASE WHEN COALESCE(JSON_EXTRACT_SCALAR(page_param,&#x27;$.groupid&#x27;),&#x27;&#x27;)=&#x27;&#x27;
+             THEN &#x27;团长&#x27; ELSE &#x27;团员&#x27; END AS user_role,
+        log_timestamp AS orderdrawer_ts
+    FROM dw.dw_tfc_elmt_eps_ug_di
+    WHERE dt BETWEEN &#x27;20260526&#x27; AND &#x27;20260602&#x27;
+      AND p_game_tp=&#x27;106&#x27; AND site_tp=&#x27;shein&#x27; AND game_tp=106 AND page_tp=&#x27;2&#x27;
+      AND event_nm=&#x27;expose_popup_selectattr&#x27;
+      AND JSON_EXTRACT_SCALAR(activity_param,&#x27;$.popup_type&#x27;)=&#x27;orderdrawer&#x27;
+      AND member_id IS NOT NULL AND member_id &gt; 0
+),
+-- 步骤3：计算当天时间间隔（秒）· 粒度：dt×exp_group×user_role×member_id
+user_interval AS (
+    SELECT f.dt, f.exp_group, f.user_role, f.member_id,
+           CAST(MIN(o.orderdrawer_ts)-f.first_screen_ts AS DOUBLE)/1000.0 AS interval_sec
+    FROM all_first_screen f
+    INNER JOIN orderdrawer_detail o
+        ON f.dt=o.dt AND f.member_id=o.member_id
+        AND f.user_role=o.user_role
+        AND o.orderdrawer_ts &gt; f.first_screen_ts
+    GROUP BY f.dt,f.exp_group,f.user_role,f.member_id,f.first_screen_ts
+),
+-- 步骤4：跨日整体分桶，PARTITION 去掉dt，按组×角色独立分桶
+user_ntile AS (
+    SELECT dt, exp_group, user_role, member_id, interval_sec,
+           NTILE(10) OVER(
+               PARTITION BY exp_group, user_role  -- ✓ 去掉dt，跨日整体排序
+               ORDER BY interval_sec ASC
+           ) AS ntile_bucket
+    FROM user_interval
+)
+-- 步骤5：跨日汇总输出（去日期维度）
+SELECT
+    exp_group,
+    user_role,
+    CONCAT(CAST(ntile_bucket*10 AS VARCHAR),&#x27;分位&#x27;)          AS percentile_group,
+    ROUND(AVG(interval_sec),2)                               AS avg_interval_sec,
+    ROUND(APPROX_PERCENTILE(interval_sec,0.5),2)             AS median_interval_sec,
+    ROUND(MIN(interval_sec),2)                               AS min_interval_sec,
+    ROUND(MAX(interval_sec),2)                               AS max_interval_sec,
+    COUNT(DISTINCT CONCAT(dt,&#x27;_&#x27;,member_id))                 AS user_cnt  -- 用户+天去重
+FROM user_ntile
+GROUP BY exp_group, user_role, ntile_bucket
+ORDER BY exp_group, user_role, ntile_bucket;</code></pre>
+                </div>
+              </div>
+            </div>
+            <div class="result-preview" style="margin-top:14px">
+              <div class="rp-head">📊 输出结果示例（示意数据）</div>
+              <table class="rp-table">
+                <thead>
+                  <tr><th>exp_group</th><th>user_role</th><th>percentile_group</th><th>avg_interval_sec</th><th>median_interval_sec</th><th>min_interval_sec</th><th>max_interval_sec</th><th>user_cnt</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td>对照组</td><td>团长</td><td>10分位</td><td>3.21</td><td>3.05</td><td>0.42</td><td>5.88</td><td>1,243</td></tr>
+                  <tr><td>对照组</td><td>团长</td><td>20分位</td><td>8.67</td><td>8.41</td><td>5.90</td><td>11.33</td><td>1,244</td></tr>
+                  <tr><td>对照组</td><td>团员</td><td>10分位</td><td>4.15</td><td>3.98</td><td>0.61</td><td>6.72</td><td>987</td></tr>
+                  <tr><td>实验组</td><td>团长</td><td>10分位</td><td>2.87</td><td>2.71</td><td>0.38</td><td>4.99</td><td>1,389</td></tr>
+                  <tr><td>实验组</td><td>团长</td><td>20分位</td><td>7.34</td><td>7.12</td><td>5.01</td><td>9.68</td><td>1,390</td></tr>
+                  <tr><td>实验组</td><td>团员</td><td>10分位</td><td>3.62</td><td>3.44</td><td>0.55</td><td>5.81</td><td>1,102</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ TURN 5: 增加订单维度 ═══ -->
+  <div class="divider fi">
+    <div class="divider-line"></div>
+    <div class="divider-label">// 需求五 · 增加团长/团员拼团订单维度</div>
+    <div class="divider-line"></div>
+  </div>
+  <div class="turn fi">
+    <div class="msg-user">
+      <div class="av av-u">我</div>
+      <div class="bubble-u">
+        目前我们拼团游戏做了一个实验，想看下实验组和对照组<strong>团长从首屏首次曝光到立即购页面首次曝光的间隔时间分布</strong>，事件属性都是 <code>expose_popup_selectattr</code>，页面属性 <code>page_tp='2'</code><br><br>
+        <strong>实验组</strong>首屏：<code>popup_type='groupbuycountdown_begin'</code> 且 <code>groupbuycountdown IN('A','B')</code><br>
+        <strong>对照组</strong>首屏：<code>popup_type='groupbuyfreeshipping'</code><br>
+        立即购曝光（两组通用）：<code>popup_type='orderdrawer'</code><br><br>
+        日期范围：5.26 到昨天。按每 <strong>10分位</strong> 分组，输出：日期、实验组别、分位组、均值、中位数、最小值、最大值、<strong>团长数、团长拼团支付订单、团员拼团支付订单、团长拼团成功支付订单数</strong>
+      </div>
+    </div>
+    <div class="msg-ai" style="margin-top:14px">
+      <div class="av av-ai">AI</div>
+      <div class="ai-body">
+        <div class="ai-header">
+          <span class="ai-name">Claude · Write-SQL Skill</span>
+          <span class="ai-step-tag">步骤1~6+7 · 完整流程</span>
+        </div>
+        <div class="think-strip">
+          <div class="think-dots"><span></span><span></span><span></span></div>
+          获取系统日期 20260604 · 昨天=20260603 · 范围 20260526~20260603 · 新增订单维度
+        </div>
+
+        <!-- 资料加载 -->
+        <div class="card open">
+          <div class="card-head" onclick="tog(this)">
+            <div class="card-icon ci-blue">📂</div>
+            <div class="card-titles">
+              <h4>步骤2 · 资料加载（8份）</h4>
+              <p>公共规范×3 + 裂变拉新业务线专属×5</p>
+            </div>
+            <span class="card-badge cb-ok">✓ 全部加载</span>
+            <span class="chevron">›</span>
+          </div>
+          <div class="card-body">
+            <div class="flist">
+              <div class="fitem"><span>📄</span><span class="fitem-name">base/hive-sql-spec.md</span><span class="fitem-desc">漏斗口径通用规则 · 订单父子结构规则</span><span class="fitem-ok">✓</span></div>
+              <div class="fitem"><span>📄</span><span class="fitem-name">base/data-quality-rules.md</span><span class="fitem-desc">测试用户过滤 · site_tp=shein</span><span class="fitem-ok">✓</span></div>
+              <div class="fitem"><span>📄</span><span class="fitem-name">base/sql-performance-guide.md</span><span class="fitem-desc">大表在前 · CTE优先 · 禁止全表扫描</span><span class="fitem-ok">✓</span></div>
+              <div class="fitem"><span>📄</span><span class="fitem-name">fission-game/metric-definitions.md</span><span class="fitem-desc">业务线核心指标口径</span><span class="fitem-ok">✓</span></div>
+              <div class="fitem"><span>📄</span><span class="fitem-name">fission-game/data-dictionary.md</span><span class="fitem-desc">命中：dw_tfc_elmt_eps_ug_di · dw_mkt_group_buy_member_h · 团长识别逻辑 · group_status枚举</span><span class="fitem-ok">✓ 选表</span></div>
+              <div class="fitem"><span>📄</span><span class="fitem-name">fission-game/common-sql-templates.md</span><span class="fitem-desc">grep expose_popup_selectattr · 无直接模板，从头构建</span><span class="fitem-ok">✓</span></div>
+              <div class="fitem"><span>📄</span><span class="fitem-name">fission-game/business-policy-log.md</span><span class="fitem-desc">2026-05-27 US首单受影响·KR/JP营销变更·不影响拼团</span><span class="fitem-ok">✓</span></div>
+              <div class="fitem"><span>📄</span><span class="fitem-name">fission-game/examples/query-examples.md</span><span class="fitem-desc">无相似示例 · 从头构建</span><span class="fitem-ok">✓</span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 选表验证 -->
+        <div class="card open">
+          <div class="card-head" onclick="tog(this)">
+            <div class="card-icon ci-amb">🔍</div>
+            <div class="card-titles">
+              <h4>步骤4 · 选表强制验证 + 双表设计</h4>
+              <p>曝光表：_ug_专属天级 · 订单表：拼团成员全量快照</p>
+            </div>
+            <span class="card-badge cb-ok">✓ 裁决完成</span>
+            <span class="chevron">›</span>
+          </div>
+          <div class="card-body">
+            <div class="dgrid" style="grid-template-columns:repeat(2,1fr)">
+              <div class="dcell"><div class="dcell-k">曝光源表（用增专属）</div><div class="dcell-v dv-g" style="font-size:11px">dw.dw_tfc_elmt_eps_ug_di</div></div>
+              <div class="dcell"><div class="dcell-k">放弃候选（通用小时级）</div><div class="dcell-v dv-r" style="font-size:11px">dw.dw_tfc_elmt_eps_hi</div></div>
+              <div class="dcell"><div class="dcell-k">订单源表（全量快照）</div><div class="dcell-v dv-g" style="font-size:11px">dw.dw_mkt_group_buy_member_h</div></div>
+              <div class="dcell"><div class="dcell-k">快照分区取值</div><div class="dcell-v dv-a" style="font-size:11px">dt='2026060323'</div></div>
+            </div>
+            <div class="diff-strip">
+              <div class="diff-title">选表依据</div>
+              <div class="diff-row"><span class="diff-loc">专属性</span><span class="diff-from">通用流量表</span><span class="diff-arr">→</span><span class="diff-to">用增专属(_ug_)，业务口径权威</span></div>
+              <div class="diff-row"><span class="diff-loc">粒度</span><span class="diff-from">小时级(_hi)+func_channel必填</span><span class="diff-arr">→</span><span class="diff-to">天级(_di)，IO更小，无需额外分区</span></div>
+              <div class="diff-row"><span class="diff-loc">订单</span><span class="diff-compat">✓ member_role=1/2区分团长团员 · group_status=2为成团</span></div>
+              <div class="diff-row"><span class="diff-loc">团员订单</span><span class="diff-compat">✓ 通过group_buy_id关联同一拼团的member_role=2成员</span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 需求解析 -->
+        <div class="card open">
+          <div class="card-head" onclick="tog(this)">
+            <div class="card-icon ci-teal">📐</div>
+            <div class="card-titles">
+              <h4>步骤3 · 需求解析 & SQL设计</h4>
+              <p>9个CTE · 时间间隔+NTILE · 三层订单关联</p>
+            </div>
+            <span class="card-badge cb-info">逻辑确认</span>
+            <span class="chevron">›</span>
+          </div>
+          <div class="card-body">
+            <div class="exp-groups">
+              <div class="eg eg-exp">
+                <div class="eg-label">实验组</div>
+                <div class="eg-cond">
+                  <code>popup_type='groupbuycountdown_begin'</code><br>
+                  + <code>groupbuycountdown IN ('A','B')</code>
+                </div>
+              </div>
+              <div class="eg eg-ctrl">
+                <div class="eg-label">对照组</div>
+                <div class="eg-cond">
+                  <code>popup_type='groupbuyfreeshipping'</code><br>&nbsp;
+                </div>
+              </div>
+            </div>
+            <div class="prose" style="margin-top:10px">
+              <strong>立即购（两组通用）：</strong><code>popup_type='orderdrawer'</code><br>
+              <strong>时间间隔：</strong><code>(立即购首次曝光ts - 首屏首次ts) / 1000</code> 秒，过滤时序异常<br>
+              <strong>NTILE(10)：</strong>PARTITION BY dt, exp_group，每天每组独立分桶
+            </div>
+            <table class="ntable" style="margin-top:14px">
+              <thead><tr><th>订单指标</th><th>口径说明</th><th>来源表字段</th></tr></thead>
+              <tbody>
+                <tr><td>captain_order_cnt</td><td>团长拼团支付订单数，不限制bill_status</td><td>member_role=1 · 所有bill_no去重</td></tr>
+                <tr><td>member_order_cnt</td><td>通过group_buy_id关联团员订单数</td><td>member_role=2 · group_buy_id关联</td></tr>
+                <tr><td>captain_succ_order_cnt</td><td>团长拼团成功订单，已成团</td><td>group_status=2（已成团）</td></tr>
+              </tbody>
+            </table>
+            <div style="margin-top:12px">
+              <div class="schema-cols">
+                <span class="scol key">dt</span>
+                <span class="scol key">exp_group</span>
+                <span class="scol">percentile_group</span>
+                <span class="scol">avg_interval_sec</span>
+                <span class="scol">median_interval_sec</span>
+                <span class="scol">min_interval_sec</span>
+                <span class="scol">max_interval_sec</span>
+                <span class="scol new">captain_cnt</span>
+                <span class="scol new">captain_order_cnt</span>
+                <span class="scol new">member_order_cnt</span>
+                <span class="scol new">captain_succ_order_cnt</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- SQL生成+校验 -->
+        <div class="card open">
+          <div class="card-head" onclick="tog(this)">
+            <div class="card-icon ci-teal">⚡</div>
+            <div class="card-titles">
+              <h4>步骤5 · SQL生成 & 自动校验 + 步骤7 · 方言转换</h4>
+              <p>Hive SQL · 9个CTE · 校验通过 → Trino转换 · 再次校验通过</p>
+            </div>
+            <span class="card-badge cb-ok">✓ 双次校验通过</span>
+            <span class="chevron">›</span>
+          </div>
+          <div class="card-body">
+            <div class="vblock">
+              <div class="vhead"><span>sql-validator.py V3.1 · Hive版 /tmp/temp-sql.sql</span></div>
+              <div class="vrow"><span class="vtag vt-warn">WARN</span><span class="vmsg">建议过滤测试用户 dim.dim_test_users → 该表未收录数据字典，<strong style="color:var(--amber)">跳过此WARN，不修改SQL</strong></span></div>
+              <div class="vrow" style="background:rgba(0,229,160,.03)"><span class="vtag vt-ok">PASS</span><span class="vmsg">无 ERROR · 允许输出</span></div>
+            </div>
+            <div class="vblock" style="margin-top:8px">
+              <div class="vhead"><span>sql-validator.py V3.1 · Trino转换版 /tmp/temp-sql-converted.sql</span></div>
+              <div class="vrow"><span class="vtag vt-skip">SKIP</span><span class="vmsg">dim_test_users 未收录 · 跳过</span></div>
+              <div class="vrow" style="background:rgba(0,229,160,.03)"><span class="vtag vt-ok">PASS</span><span class="vmsg">转换后无 ERROR · 允许输出</span></div>
+            </div>
+            <div class="diff-strip" style="margin-top:12px">
+              <div class="diff-title">Hive → Trino 转换清单（步骤7）</div>
+              <div class="diff-row"><span class="diff-loc">类型转换</span><span class="diff-from">CAST(... AS STRING)</span><span class="diff-arr">→</span><span class="diff-to">CAST(... AS VARCHAR)</span></div>
+              <div class="diff-row"><span class="diff-loc">JSON提取</span><span class="diff-from">GET_JSON_OBJECT(field,'$.key')</span><span class="diff-arr">→</span><span class="diff-to">JSON_EXTRACT_SCALAR(field,'$.key')</span></div>
+              <div class="diff-row"><span class="diff-loc">近似中位数</span><span class="diff-from">PERCENTILE_APPROX(col,0.5)</span><span class="diff-arr">→</span><span class="diff-to">APPROX_PERCENTILE(col,0.5)</span></div>
+              <div class="diff-row"><span class="diff-loc">CTE/NTILE/COALESCE/ROUND/SUBSTR/REPLACE</span><span class="diff-compat">✓ 全部兼容，禁止改动</span></div>
+            </div>
+            <div class="sql-wrap" style="margin-top:14px">
+              <div class="sql-tabs">
+                <button class="stab on" onclick="stab(this,'c5-hive')">🌿 Hive SQL</button>
+                <button class="stab" onclick="stab(this,'c5-trino')">⚡ Trino SQL（转换后）</button>
+                <button class="stab" onclick="stab(this,'c5-lyra')" style="background:var(--ros-dim);border-color:var(--ros-bdr);color:var(--rose);">🤖 Lyra.AI 生成</button>
+              </div>
+              <div class="spane on" id="pane-c5-hive">
+                <div class="codebox">
+                  <div class="codebox-bar">
+                    <span class="codebox-eng">ENGINE: Hive · 数据范围 20260526~20260603 · 日×组 · 9个CTE · 含订单</span>
+                    <button class="copybtn" onclick="cp('c5h',this)">📋 复制</button>
+                  </div>
+                  <pre><code id="c5h" class="language-sql">-- =============================================
+-- 需求：拼团游戏AB实验-团长从首屏首次曝光到立即购页面首次曝光的间隔时间分布（10分位分组）
+-- 业务线：裂变拉新业务线
+-- 生成时间：2026-06-04
+-- 数据范围：20260526 ~ 20260603
+-- 统计粒度：日
+-- 关键说明：
+-- 1. 指标口径：时间间隔 = (orderdrawer弹窗首次曝光时间戳 - 首屏首次曝光时间戳) / 1000，单位秒
+--             实验组：popup_type=&#x27;groupbuycountdown_begin&#x27; 且 groupbuycountdown IN (&#x27;A&#x27;,&#x27;B&#x27;)
+--             对照组：popup_type=&#x27;groupbuyfreeshipping&#x27;
+-- 2. 数据过滤：game_tp=106(拼团游戏)，page_tp=&#x27;2&#x27;，site_tp=&#x27;shein&#x27;，团长（groupid为空）
+-- 3. 业务影响：2026-05-27 US站点首单数预计受影响30%-40%；KR/JP站点有营销活动变更
+-- 4. 性能提示：dw_tfc_elmt_eps_ug_di 为用增专属天级曝光表（优于通用小时级 _hi 表），
+--             已加 dt+p_game_tp+game_tp+page_tp+activity_nm 多维分区/字段过滤
+-- 选表依据：dw.dw_tfc_elmt_eps_ug_di 优于 dw.dw_tfc_elmt_eps_hi，
+--          原因：用增业务专属表、天级(_di)优于小时级(_hi)、无需 func_channel 分区
+-- =============================================
+
+WITH
+-- ====================
+-- Step 1: 获取首屏首次曝光（实验组+对照组，仅团长）
+--   实验组：popup_type=&#x27;groupbuycountdown_begin&#x27; 且 groupbuycountdown IN (&#x27;A&#x27;,&#x27;B&#x27;)
+--   对照组：popup_type=&#x27;groupbuyfreeshipping&#x27;
+--   团长识别：page_param 中 $.groupid 为空或空值
+-- ====================
+first_expose_base AS (
+    SELECT
+        dt                                                                          AS dt,
+        CAST(member_id AS STRING)                                                   AS member_id,
+        CASE
+            WHEN get_json_object(activity_param, &#x27;$.popup_type&#x27;) = &#x27;groupbuycountdown_begin&#x27; THEN &#x27;实验组&#x27;
+            ELSE &#x27;对照组&#x27;
+        END                                                                         AS exp_group,
+        MIN(log_timestamp)                                                          AS first_expose_ts
+    FROM dw.dw_tfc_elmt_eps_ug_di
+    WHERE dt BETWEEN &#x27;20260526&#x27; AND &#x27;20260603&#x27;
+      AND p_game_tp = &#x27;106&#x27;                                                         -- 分区裁剪，提升性能
+      AND game_tp IN (106)                                                          -- 拼团游戏
+      AND page_tp = &#x27;2&#x27;                                                             -- 拼团主页/列表页
+      AND activity_nm = &#x27;expose_popup_selectattr&#x27;                                   -- 弹窗曝光事件
+      AND site_tp = &#x27;shein&#x27;
+      AND COALESCE(get_json_object(page_param, &#x27;$.groupid&#x27;), &#x27;&#x27;) = &#x27;&#x27;               -- 团长：groupid为空
+      AND (
+          (   get_json_object(activity_param, &#x27;$.popup_type&#x27;) = &#x27;groupbuycountdown_begin&#x27;
+           AND get_json_object(activity_param, &#x27;$.groupbuycountdown&#x27;) IN (&#x27;A&#x27;, &#x27;B&#x27;) -- 实验组 A 或 B
+          )
+          OR get_json_object(activity_param, &#x27;$.popup_type&#x27;) = &#x27;groupbuyfreeshipping&#x27; -- 对照组
+      )
+    GROUP BY
+        dt,
+        CAST(member_id AS STRING),
+        CASE
+            WHEN get_json_object(activity_param, &#x27;$.popup_type&#x27;) = &#x27;groupbuycountdown_begin&#x27; THEN &#x27;实验组&#x27;
+            ELSE &#x27;对照组&#x27;
+        END
+),
+
+-- ====================
+-- Step 2: 获取立即购页面首次曝光（仅团长）
+--   popup_type=&#x27;orderdrawer&#x27; 即立即购弹窗
+-- ====================
+order_expose_base AS (
+    SELECT
+        dt                                      AS dt,
+        CAST(member_id AS STRING)               AS member_id,
+        MIN(log_timestamp)                      AS order_expose_ts
+    FROM dw.dw_tfc_elmt_eps_ug_di
+    WHERE dt BETWEEN &#x27;20260526&#x27; AND &#x27;20260603&#x27;
+      AND p_game_tp = &#x27;106&#x27;
+      AND game_tp IN (106)
+      AND page_tp = &#x27;2&#x27;
+      AND activity_nm = &#x27;expose_popup_selectattr&#x27;
+      AND site_tp = &#x27;shein&#x27;
+      AND COALESCE(get_json_object(page_param, &#x27;$.groupid&#x27;), &#x27;&#x27;) = &#x27;&#x27;               -- 团长
+      AND get_json_object(activity_param, &#x27;$.popup_type&#x27;) = &#x27;orderdrawer&#x27;          -- 立即购弹窗
+    GROUP BY
+        dt,
+        CAST(member_id AS STRING)
+),
+
+-- ====================
+-- Step 3: 计算时间间隔（秒），仅保留立即购在首屏曝光之后的有效记录
+-- ====================
+interval_base AS (
+    SELECT
+        fe.dt                                                                       AS dt,
+        fe.member_id                                                                AS member_id,
+        fe.exp_group                                                                AS exp_group,
+        ROUND((oe.order_expose_ts - fe.first_expose_ts) / 1000.0, 2)              AS interval_sec
+    FROM first_expose_base fe
+    INNER JOIN order_expose_base oe
+        ON fe.dt = oe.dt
+        AND fe.member_id = oe.member_id
+    WHERE oe.order_expose_ts &gt;= fe.first_expose_ts                                  -- 时序过滤：立即购须在首屏之后
+),
+
+-- ====================
+-- Step 4: NTILE(10) 分位分组（按每日每实验组单独计算，升序排列）
+-- ====================
+ntile_base AS (
+    SELECT
+        dt,
+        member_id,
+        exp_group,
+        interval_sec,
+        NTILE(10) OVER (
+            PARTITION BY dt, exp_group
+            ORDER BY interval_sec ASC
+        )                                                                           AS ntile_bucket
+    FROM interval_base
+),
+
+-- ====================
+-- Step 5: 从拼团成员快照表取团长拼团记录
+--   全量快照表，取最新分区 dt=&#x27;2026060323&#x27;，通过 create_time 过滤统计日期范围
+-- ====================
+captain_group_base AS (
+    SELECT
+        REPLACE(SUBSTR(create_time, 1, 10), &#x27;-&#x27;, &#x27;&#x27;)    AS order_dt,
+        CAST(user_id AS STRING)                          AS member_id,
+        group_buy_id,
+        bill_no,
+        group_status
+    FROM dw.dw_mkt_group_buy_member_h
+    WHERE dt = &#x27;2026060323&#x27;                                                         -- 全量快照最新分区
+      AND member_role = 1                                                            -- 仅团长
+      AND LOWER(COALESCE(act_name_en, &#x27;&#x27;)) NOT LIKE &#x27;%test%&#x27;                        -- 过滤测试活动
+      AND REPLACE(SUBSTR(create_time, 1, 10), &#x27;-&#x27;, &#x27;&#x27;) BETWEEN &#x27;20260526&#x27; AND &#x27;20260603&#x27;
+),
+
+-- ====================
+-- Step 6: 从拼团成员快照表取团员拼团记录
+-- ====================
+member_group_base AS (
+    SELECT
+        group_buy_id,
+        bill_no
+    FROM dw.dw_mkt_group_buy_member_h
+    WHERE dt = &#x27;2026060323&#x27;
+      AND member_role = 2                                                            -- 仅团员
+      AND LOWER(COALESCE(act_name_en, &#x27;&#x27;)) NOT LIKE &#x27;%test%&#x27;
+      AND REPLACE(SUBSTR(create_time, 1, 10), &#x27;-&#x27;, &#x27;&#x27;) BETWEEN &#x27;20260526&#x27; AND &#x27;20260603&#x27;
+),
+
+-- ====================
+-- Step 7: 时间间隔统计量（均值、中位数、最值、团长数）
+-- ====================
+interval_stats AS (
+    SELECT
+        dt,
+        exp_group,
+        ntile_bucket,
+        ROUND(AVG(interval_sec), 2)                       AS avg_interval_sec,
+        ROUND(PERCENTILE_APPROX(interval_sec, 0.5), 2)    AS median_interval_sec,
+        ROUND(MIN(interval_sec), 2)                       AS min_interval_sec,
+        ROUND(MAX(interval_sec), 2)                       AS max_interval_sec,
+        COUNT(DISTINCT member_id)                         AS captain_cnt
+    FROM ntile_base
+    GROUP BY dt, exp_group, ntile_bucket
+),
+
+-- ====================
+-- Step 8: 团长拼团支付订单数 &amp; 团长拼团成功支付订单数
+--   支付订单：表中所有订单，不限制 bill_status
+--   成功支付订单：group_status=2（已成团）
+-- ====================
+captain_order_stats AS (
+    SELECT
+        nb.dt                                                                       AS dt,
+        nb.exp_group                                                                AS exp_group,
+        nb.ntile_bucket                                                             AS ntile_bucket,
+        COUNT(DISTINCT cg.bill_no)                                                  AS captain_order_cnt,
+        COUNT(DISTINCT CASE WHEN cg.group_status = 2 THEN cg.bill_no ELSE NULL END) AS captain_succ_order_cnt
+    FROM ntile_base nb
+    LEFT JOIN captain_group_base cg
+        ON nb.dt = cg.order_dt
+        AND nb.member_id = cg.member_id
+    GROUP BY nb.dt, nb.exp_group, nb.ntile_bucket
+),
+
+-- ====================
+-- Step 9: 团员拼团支付订单数
+--   通过团长所在拼团（group_buy_id）关联团员，统计团员订单
+-- ====================
+member_order_stats AS (
+    SELECT
+        nb.dt                                                                       AS dt,
+        nb.exp_group                                                                AS exp_group,
+        nb.ntile_bucket                                                             AS ntile_bucket,
+        COUNT(DISTINCT mg.bill_no)                                                  AS member_order_cnt
+    FROM ntile_base nb
+    INNER JOIN captain_group_base cg
+        ON nb.dt = cg.order_dt
+        AND nb.member_id = cg.member_id
+    INNER JOIN member_group_base mg
+        ON cg.group_buy_id = mg.group_buy_id
+    GROUP BY nb.dt, nb.exp_group, nb.ntile_bucket
+)
+
+-- ====================
+-- 最终结果：按日期、实验组别、10分位段输出
+-- ====================
+SELECT
+    ist.dt                                                                          AS dt,                          -- 日期
+    ist.exp_group                                                                   AS exp_group,                   -- 实验组别（对照组/实验组）
+    CONCAT(CAST(ist.ntile_bucket * 10 AS STRING), &#x27;分位&#x27;)                           AS percentile_group,            -- 10分位段（10分位~100分位）
+    ist.avg_interval_sec                                                            AS avg_interval_sec,            -- 时间间隔均值（秒）
+    ist.median_interval_sec                                                         AS median_interval_sec,         -- 时间间隔中位数（秒）
+    ist.min_interval_sec                                                            AS min_interval_sec,            -- 时间间隔最小值（秒）
+    ist.max_interval_sec                                                            AS max_interval_sec,            -- 时间间隔最大值（秒）
+    ist.captain_cnt                                                                 AS captain_cnt,                 -- 团长数
+    COALESCE(cos.captain_order_cnt, 0)                                              AS captain_order_cnt,           -- 团长拼团支付订单数
+    COALESCE(mos.member_order_cnt, 0)                                               AS member_order_cnt,            -- 团员拼团支付订单数
+    COALESCE(cos.captain_succ_order_cnt, 0)                                         AS captain_succ_order_cnt       -- 团长拼团成功支付订单数
+FROM interval_stats ist
+LEFT JOIN captain_order_stats cos
+    ON ist.dt = cos.dt
+    AND ist.exp_group = cos.exp_group
+    AND ist.ntile_bucket = cos.ntile_bucket
+LEFT JOIN member_order_stats mos
+    ON ist.dt = mos.dt
+    AND ist.exp_group = mos.exp_group
+    AND ist.ntile_bucket = mos.ntile_bucket
+ORDER BY
+    ist.dt          ASC,
+    ist.exp_group   ASC,
+    ist.ntile_bucket ASC
+;
+</code></pre>
+                </div>
+              </div>
+              <div class="spane" id="pane-c5-trino">
+                <div class="codebox">
+                  <div class="codebox-bar">
+                    <span class="codebox-eng">ENGINE: Trino SQL · STRING→VARCHAR · GET_JSON_OBJECT→JSON_EXTRACT_SCALAR · PERCENTILE_APPROX→APPROX_PERCENTILE</span>
+                    <button class="copybtn" onclick="cp('c5t',this)">📋 复制</button>
+                  </div>
+                  <pre><code id="c5t" class="language-sql">-- =============================================
+-- 需求：拼团游戏AB实验-团长从首屏首次曝光到立即购页面首次曝光的间隔时间分布（10分位分组）
+-- 业务线：裂变拉新业务线
+-- 生成时间：2026-06-04
+-- 数据范围：20260526 ~ 20260603
+-- 统计粒度：日
+-- 执行引擎：Trino SQL
+-- 关键说明：
+-- 1. 指标口径：时间间隔 = (orderdrawer弹窗首次曝光时间戳 - 首屏首次曝光时间戳) / 1000，单位秒
+--             实验组：popup_type=&#x27;groupbuycountdown_begin&#x27; 且 groupbuycountdown IN (&#x27;A&#x27;,&#x27;B&#x27;)
+--             对照组：popup_type=&#x27;groupbuyfreeshipping&#x27;
+-- 2. 数据过滤：game_tp=106(拼团游戏)，page_tp=&#x27;2&#x27;，site_tp=&#x27;shein&#x27;，团长（groupid为空）
+-- 3. 业务影响：2026-05-27 US站点首单数预计受影响30%-40%；KR/JP站点有营销活动变更
+-- 4. 性能提示：dw_tfc_elmt_eps_ug_di 为用增专属天级曝光表（优于通用小时级 _hi 表），
+--             已加 dt+p_game_tp+game_tp+page_tp+activity_nm 多维分区/字段过滤
+-- =============================================
+
+WITH
+-- ====================
+-- Step 1: 获取首屏首次曝光（实验组+对照组，仅团长）
+--   实验组：popup_type=&#x27;groupbuycountdown_begin&#x27; 且 groupbuycountdown IN (&#x27;A&#x27;,&#x27;B&#x27;)
+--   对照组：popup_type=&#x27;groupbuyfreeshipping&#x27;
+--   团长识别：page_param 中 $.groupid 为空或空值
+-- ====================
+first_expose_base AS (
+    SELECT
+        dt                                                                          AS dt,
+        CAST(member_id AS VARCHAR)                                                  AS member_id,
+        CASE
+            WHEN JSON_EXTRACT_SCALAR(activity_param, &#x27;$.popup_type&#x27;) = &#x27;groupbuycountdown_begin&#x27; THEN &#x27;实验组&#x27;
+            ELSE &#x27;对照组&#x27;
+        END                                                                         AS exp_group,
+        MIN(log_timestamp)                                                          AS first_expose_ts
+    FROM dw.dw_tfc_elmt_eps_ug_di
+    WHERE dt BETWEEN &#x27;20260526&#x27; AND &#x27;20260603&#x27;
+      AND p_game_tp = &#x27;106&#x27;                                                         -- 分区裁剪，提升性能
+      AND game_tp IN (106)                                                          -- 拼团游戏
+      AND page_tp = &#x27;2&#x27;                                                             -- 拼团主页/列表页
+      AND activity_nm = &#x27;expose_popup_selectattr&#x27;                                   -- 弹窗曝光事件
+      AND site_tp = &#x27;shein&#x27;
+      AND COALESCE(JSON_EXTRACT_SCALAR(page_param, &#x27;$.groupid&#x27;), &#x27;&#x27;) = &#x27;&#x27;           -- 团长：groupid为空
+      AND (
+          (   JSON_EXTRACT_SCALAR(activity_param, &#x27;$.popup_type&#x27;) = &#x27;groupbuycountdown_begin&#x27;
+           AND JSON_EXTRACT_SCALAR(activity_param, &#x27;$.groupbuycountdown&#x27;) IN (&#x27;A&#x27;, &#x27;B&#x27;)
+          )
+          OR JSON_EXTRACT_SCALAR(activity_param, &#x27;$.popup_type&#x27;) = &#x27;groupbuyfreeshipping&#x27;
+      )
+    GROUP BY
+        dt,
+        CAST(member_id AS VARCHAR),
+        CASE
+            WHEN JSON_EXTRACT_SCALAR(activity_param, &#x27;$.popup_type&#x27;) = &#x27;groupbuycountdown_begin&#x27; THEN &#x27;实验组&#x27;
+            ELSE &#x27;对照组&#x27;
+        END
+),
+
+-- ====================
+-- Step 2: 获取立即购页面首次曝光（仅团长）
+--   popup_type=&#x27;orderdrawer&#x27; 即立即购弹窗
+-- ====================
+order_expose_base AS (
+    SELECT
+        dt                                      AS dt,
+        CAST(member_id AS VARCHAR)              AS member_id,
+        MIN(log_timestamp)                      AS order_expose_ts
+    FROM dw.dw_tfc_elmt_eps_ug_di
+    WHERE dt BETWEEN &#x27;20260526&#x27; AND &#x27;20260603&#x27;
+      AND p_game_tp = &#x27;106&#x27;
+      AND game_tp IN (106)
+      AND page_tp = &#x27;2&#x27;
+      AND activity_nm = &#x27;expose_popup_selectattr&#x27;
+      AND site_tp = &#x27;shein&#x27;
+      AND COALESCE(JSON_EXTRACT_SCALAR(page_param, &#x27;$.groupid&#x27;), &#x27;&#x27;) = &#x27;&#x27;           -- 团长
+      AND JSON_EXTRACT_SCALAR(activity_param, &#x27;$.popup_type&#x27;) = &#x27;orderdrawer&#x27;      -- 立即购弹窗
+    GROUP BY
+        dt,
+        CAST(member_id AS VARCHAR)
+),
+
+-- ====================
+-- Step 3: 计算时间间隔（秒），仅保留立即购在首屏曝光之后的有效记录
+-- ====================
+interval_base AS (
+    SELECT
+        fe.dt                                                                       AS dt,
+        fe.member_id                                                                AS member_id,
+        fe.exp_group                                                                AS exp_group,
+        ROUND((oe.order_expose_ts - fe.first_expose_ts) / 1000.0, 2)              AS interval_sec
+    FROM first_expose_base fe
+    INNER JOIN order_expose_base oe
+        ON fe.dt = oe.dt
+        AND fe.member_id = oe.member_id
+    WHERE oe.order_expose_ts &gt;= fe.first_expose_ts                                  -- 时序过滤：立即购须在首屏之后
+),
+
+-- ====================
+-- Step 4: NTILE(10) 分位分组（按每日每实验组单独计算，升序排列）
+-- ====================
+ntile_base AS (
+    SELECT
+        dt,
+        member_id,
+        exp_group,
+        interval_sec,
+        NTILE(10) OVER (
+            PARTITION BY dt, exp_group
+            ORDER BY interval_sec ASC
+        )                                                                           AS ntile_bucket
+    FROM interval_base
+),
+
+-- ====================
+-- Step 5: 从拼团成员快照表取团长拼团记录
+--   全量快照表，取最新分区 dt=&#x27;2026060323&#x27;，通过 create_time 过滤统计日期范围
+-- ====================
+captain_group_base AS (
+    SELECT
+        REPLACE(SUBSTR(create_time, 1, 10), &#x27;-&#x27;, &#x27;&#x27;)    AS order_dt,
+        CAST(user_id AS VARCHAR)                         AS member_id,
+        group_buy_id,
+        bill_no,
+        group_status
+    FROM dw.dw_mkt_group_buy_member_h
+    WHERE dt = &#x27;2026060323&#x27;                                                         -- 全量快照最新分区
+      AND member_role = 1                                                            -- 仅团长
+      AND LOWER(COALESCE(act_name_en, &#x27;&#x27;)) NOT LIKE &#x27;%test%&#x27;                        -- 过滤测试活动
+      AND REPLACE(SUBSTR(create_time, 1, 10), &#x27;-&#x27;, &#x27;&#x27;) BETWEEN &#x27;20260526&#x27; AND &#x27;20260603&#x27;
+),
+
+-- ====================
+-- Step 6: 从拼团成员快照表取团员拼团记录
+-- ====================
+member_group_base AS (
+    SELECT
+        group_buy_id,
+        bill_no
+    FROM dw.dw_mkt_group_buy_member_h
+    WHERE dt = &#x27;2026060323&#x27;
+      AND member_role = 2                                                            -- 仅团员
+      AND LOWER(COALESCE(act_name_en, &#x27;&#x27;)) NOT LIKE &#x27;%test%&#x27;
+      AND REPLACE(SUBSTR(create_time, 1, 10), &#x27;-&#x27;, &#x27;&#x27;) BETWEEN &#x27;20260526&#x27; AND &#x27;20260603&#x27;
+),
+
+-- ====================
+-- Step 7: 时间间隔统计量（均值、中位数、最值、团长数）
+-- ====================
+interval_stats AS (
+    SELECT
+        dt,
+        exp_group,
+        ntile_bucket,
+        ROUND(AVG(interval_sec), 2)                       AS avg_interval_sec,
+        ROUND(APPROX_PERCENTILE(interval_sec, 0.5), 2)    AS median_interval_sec,
+        ROUND(MIN(interval_sec), 2)                       AS min_interval_sec,
+        ROUND(MAX(interval_sec), 2)                       AS max_interval_sec,
+        COUNT(DISTINCT member_id)                         AS captain_cnt
+    FROM ntile_base
+    GROUP BY dt, exp_group, ntile_bucket
+),
+
+-- ====================
+-- Step 8: 团长拼团支付订单数 &amp; 团长拼团成功支付订单数
+-- ====================
+captain_order_stats AS (
+    SELECT
+        nb.dt                                                                       AS dt,
+        nb.exp_group                                                                AS exp_group,
+        nb.ntile_bucket                                                             AS ntile_bucket,
+        COUNT(DISTINCT cg.bill_no)                                                  AS captain_order_cnt,
+        COUNT(DISTINCT CASE WHEN cg.group_status = 2 THEN cg.bill_no ELSE NULL END) AS captain_succ_order_cnt
+    FROM ntile_base nb
+    LEFT JOIN captain_group_base cg
+        ON nb.dt = cg.order_dt
+        AND nb.member_id = cg.member_id
+    GROUP BY nb.dt, nb.exp_group, nb.ntile_bucket
+),
+
+-- ====================
+-- Step 9: 团员拼团支付订单数
+-- ====================
+member_order_stats AS (
+    SELECT
+        nb.dt                                                                       AS dt,
+        nb.exp_group                                                                AS exp_group,
+        nb.ntile_bucket                                                             AS ntile_bucket,
+        COUNT(DISTINCT mg.bill_no)                                                  AS member_order_cnt
+    FROM ntile_base nb
+    INNER JOIN captain_group_base cg
+        ON nb.dt = cg.order_dt
+        AND nb.member_id = cg.member_id
+    INNER JOIN member_group_base mg
+        ON cg.group_buy_id = mg.group_buy_id
+    GROUP BY nb.dt, nb.exp_group, nb.ntile_bucket
+)
+
+-- ====================
+-- 最终结果：按日期、实验组别、10分位段输出
+-- ====================
+SELECT
+    ist.dt                                                                          AS dt,                          -- 日期
+    ist.exp_group                                                                   AS exp_group,                   -- 实验组别（对照组/实验组）
+    CONCAT(CAST(ist.ntile_bucket * 10 AS VARCHAR), &#x27;分位&#x27;)                          AS percentile_group,            -- 10分位段（10分位~100分位）
+    ist.avg_interval_sec                                                            AS avg_interval_sec,            -- 时间间隔均值（秒）
+    ist.median_interval_sec                                                         AS median_interval_sec,         -- 时间间隔中位数（秒）
+    ist.min_interval_sec                                                            AS min_interval_sec,            -- 时间间隔最小值（秒）
+    ist.max_interval_sec                                                            AS max_interval_sec,            -- 时间间隔最大值（秒）
+    ist.captain_cnt                                                                 AS captain_cnt,                 -- 团长数
+    COALESCE(cos.captain_order_cnt, 0)                                              AS captain_order_cnt,           -- 团长拼团支付订单数
+    COALESCE(mos.member_order_cnt, 0)                                               AS member_order_cnt,            -- 团员拼团支付订单数
+    COALESCE(cos.captain_succ_order_cnt, 0)                                         AS captain_succ_order_cnt       -- 团长拼团成功支付订单数
+FROM interval_stats ist
+LEFT JOIN captain_order_stats cos
+    ON ist.dt = cos.dt
+    AND ist.exp_group = cos.exp_group
+    AND ist.ntile_bucket = cos.ntile_bucket
+LEFT JOIN member_order_stats mos
+    ON ist.dt = mos.dt
+    AND ist.exp_group = mos.exp_group
+    AND ist.ntile_bucket = mos.ntile_bucket
+ORDER BY
+    ist.dt          ASC,
+    ist.exp_group   ASC,
+    ist.ntile_bucket ASC
+;
+</code></pre>
+                </div>
+              </div>
+                            <div class="spane" id="pane-c5-lyra">
+
+                <!-- 标注说明栏 -->
+                <div style="display:flex;align-items:center;gap:10px;padding:9px 16px;background:rgba(255,95,126,.08);border:1px solid rgba(255,95,126,.28);border-radius:8px 8px 0 0;font-size:12px;color:var(--smoke);">
+                  <span>⚠️</span>
+                  <span>以下为 <strong style="color:var(--rose);">Lyra.AI</strong> 生成的 SQL，红色背景行=<strong style="color:var(--rose);">严重错误</strong>，黄色=<strong style="color:var(--amber);">中等问题</strong>，蓝色=<strong style="color:var(--accent2);">提示</strong>，共标注 <strong style="color:var(--rose);">8处差异</strong></span>
+                </div>
+
+                <!-- 差异总览 -->
+                <div style="background:var(--ink2);border:1px solid var(--line2);border-top:none;border-bottom:none;padding:12px 16px;">
+                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+                    <div style="padding:7px 12px;background:rgba(255,95,126,.08);border:1px solid rgba(255,95,126,.25);border-radius:7px;font-size:11.5px;display:flex;gap:8px;align-items:flex-start;">
+                      <span style="color:var(--rose);font-family:var(--mono);min-width:18px;font-weight:700;">①</span>
+                      <div><div style="color:#fff;margin-bottom:2px;font-size:11px;">游戏类型ID错误</div><div style="color:var(--smoke);font-size:10.5px;font-family:var(--mono);">p_game_tp=<span style="color:var(--rose);text-decoration:line-through">'205'</span> → 应为 <span style="color:var(--accent)">'106'</span>（205=返佣，106=拼团）</div></div>
+                    </div>
+                    <div style="padding:7px 12px;background:rgba(255,95,126,.08);border:1px solid rgba(255,95,126,.25);border-radius:7px;font-size:11.5px;display:flex;gap:8px;align-items:flex-start;">
+                      <span style="color:var(--rose);font-family:var(--mono);min-width:18px;font-weight:700;">②</span>
+                      <div><div style="color:#fff;margin-bottom:2px;font-size:11px;">团长过滤缺失</div><div style="color:var(--smoke);font-size:10.5px;">Step1/2/4 均未过滤 groupid=''，团员混入人群</div></div>
+                    </div>
+                    <div style="padding:7px 12px;background:rgba(255,95,126,.08);border:1px solid rgba(255,95,126,.25);border-radius:7px;font-size:11.5px;display:flex;gap:8px;align-items:flex-start;">
+                      <span style="color:var(--rose);font-family:var(--mono);min-width:18px;font-weight:700;">③</span>
+                      <div><div style="color:#fff;margin-bottom:2px;font-size:11px;">订单表分区用法错误</div><div style="color:var(--smoke);font-size:10.5px;">全量快照表不能用 dt BETWEEN，应取 dt='2026060323'</div></div>
+                    </div>
+                    <div style="padding:7px 12px;background:rgba(255,95,126,.08);border:1px solid rgba(255,95,126,.25);border-radius:7px;font-size:11.5px;display:flex;gap:8px;align-items:flex-start;">
+                      <span style="color:var(--rose);font-family:var(--mono);min-width:18px;font-weight:700;">④</span>
+                      <div><div style="color:#fff;margin-bottom:2px;font-size:11px;">团员订单口径错误</div><div style="color:var(--smoke);font-size:10.5px;">应通过 group_buy_id 关联团员，不能靠 member_role=2 过滤</div></div>
+                    </div>
+                    <div style="padding:7px 12px;background:rgba(255,185,48,.08);border:1px solid rgba(255,185,48,.25);border-radius:7px;font-size:11.5px;display:flex;gap:8px;align-items:flex-start;">
+                      <span style="color:var(--amber);font-family:var(--mono);min-width:18px;font-weight:700;">⑤</span>
+                      <div><div style="color:#fff;margin-bottom:2px;font-size:11px;">bill_status 过滤多余</div><div style="color:var(--smoke);font-size:10.5px;">数据字典说明：表中所有订单均为支付订单，无需限制</div></div>
+                    </div>
+                    <div style="padding:7px 12px;background:rgba(255,185,48,.08);border:1px solid rgba(255,185,48,.25);border-radius:7px;font-size:11.5px;display:flex;gap:8px;align-items:flex-start;">
+                      <span style="color:var(--amber);font-family:var(--mono);min-width:18px;font-weight:700;">⑥</span>
+                      <div><div style="color:#fff;margin-bottom:2px;font-size:11px;">年份错误</div><div style="color:var(--smoke);font-size:10.5px;font-family:var(--mono);"><span style="color:var(--rose);text-decoration:line-through">'20250526'</span> → 应为 <span style="color:var(--accent)">'20260526'</span></div></div>
+                    </div>
+                    <div style="padding:7px 12px;background:rgba(255,185,48,.08);border:1px solid rgba(255,185,48,.25);border-radius:7px;font-size:11.5px;display:flex;gap:8px;align-items:flex-start;">
+                      <span style="color:var(--amber);font-family:var(--mono);min-width:18px;font-weight:700;">⑦</span>
+                      <div><div style="color:#fff;margin-bottom:2px;font-size:11px;">中文别名缺反引号</div><div style="color:var(--smoke);font-size:10.5px;">Hive 中文别名须用反引号包裹，否则报 ParseException</div></div>
+                    </div>
+                    <div style="padding:7px 12px;background:rgba(91,111,255,.08);border:1px solid rgba(91,111,255,.22);border-radius:7px;font-size:11.5px;display:flex;gap:8px;align-items:flex-start;">
+                      <span style="color:var(--accent2);font-family:var(--mono);min-width:18px;font-weight:700;">⑧</span>
+                      <div><div style="color:#fff;margin-bottom:2px;font-size:11px;">page_nm 硬编码（提示）</div><div style="color:var(--smoke);font-size:10.5px;">可选分区，本需求未要求，加上逻辑无误但不符合约定</div></div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- 带行内标注的代码块 -->
+                <div class="codebox" style="border-radius:0 0 12px 12px;border-top:none;">
+                  <div class="codebox-bar" style="background:rgba(255,95,126,.05);">
+                    <span class="codebox-eng" style="color:var(--rose);">🤖 Lyra.AI 生成 · 标注版（红色=严重 黄色=中等 蓝色=提示）</span>
+                    <button class="copybtn" onclick="cp('c5l',this)">📋 复制原文</button>
+                  </div>
+                  <pre style="margin:0;padding:20px 22px;overflow-x:auto;max-height:620px;overflow-y:auto;background:#0c1020;font-family:var(--mono);font-size:11.5px;line-height:1.72;"><span style="display:block;">-- Engine: Hive SQL</span>
+<span style="display:block;">-- 目标：实验组/对照组团长首屏首次曝光 -&gt; 立即购首次曝光 时间间隔分布（10分位）+ 拼团订单指标</span>
+<span style="display:block;">-- 日期范围：20250526 ~ ${sys.bizdate}（昨天）</span>
+<span style="display:block;">-- 来源表：</span>
+<span style="display:block;">--   dw.dw_tfc_elmt_eps_ug_di       曝光行为明细（分区：dt / page_nm / p_game_tp）</span>
+<span style="display:block;">--   dw.dw_mkt_group_buy_member_h   拼团成员订单表（分区：dt）</span>
+<span style="display:block;"></span>
+<span style="display:block;">WITH</span>
+<span style="display:block;"></span>
+<span style="display:block;">-- Step1: 实验组 首屏首次曝光（popup_type=groupbuycountdown_begin, groupbuycountdown IN(&#x27;A&#x27;,&#x27;B&#x27;)）</span>
+<span style="display:block;">exp_first_screen AS (</span>
+<span style="display:block;">    SELECT</span>
+<span style="display:block;">        dt,</span>
+<span style="display:block;">        member_id,</span>
+<span style="display:block;">        MIN(log_timestamp) AS first_screen_ts</span>
+<span style="display:block;">    FROM dw.dw_tfc_elmt_eps_ug_di</span>
+<span class="lyra-err-line" style="display:block;background:rgba(255,95,126,.13);border-left:3px solid rgba(255,95,126,.5);margin:0 -22px;padding:0 22px 0 19px;position:relative;">    WHERE dt BETWEEN &#x27;20250526&#x27; AND &#x27;${sys.bizdate}&#x27;<span style="position:absolute;right:8px;top:0;bottom:0;display:flex;align-items:center;gap:4px;pointer-events:none;"><span style="font-size:9px;padding:1px 7px;background:rgba(255,95,126,.5);border-radius:3px;color:#fff;font-family:var(--mono);white-space:nowrap;opacity:.9;">⑥ 年份应为2026</span></span></span>
+<span class="lyra-err-line" style="display:block;background:rgba(91,111,255,.10);border-left:3px solid rgba(91,111,255,.5);margin:0 -22px;padding:0 22px 0 19px;position:relative;">      AND page_nm = &#x27;page_game&#x27;<span style="position:absolute;right:8px;top:0;bottom:0;display:flex;align-items:center;gap:4px;pointer-events:none;"><span style="font-size:9px;padding:1px 7px;background:rgba(91,111,255,.5);border-radius:3px;color:#fff;font-family:var(--mono);white-space:nowrap;opacity:.9;">⑧ 可选分区，本需求未要求</span></span></span>
+<span class="lyra-err-line" style="display:block;background:rgba(255,95,126,.13);border-left:3px solid rgba(255,95,126,.5);margin:0 -22px;padding:0 22px 0 19px;position:relative;">      AND p_game_tp = &#x27;205&#x27;<span style="position:absolute;right:8px;top:0;bottom:0;display:flex;align-items:center;gap:4px;pointer-events:none;"><span style="font-size:9px;padding:1px 7px;background:rgba(255,95,126,.5);border-radius:3px;color:#fff;font-family:var(--mono);white-space:nowrap;opacity:.9;">① game_tp=205是返佣游戏，拼团应为&#x27;106&#x27;</span></span></span>
+<span style="display:block;">      AND activity_nm = &#x27;expose_popup_selectattr&#x27;</span>
+<span style="display:block;">      AND page_tp = &#x27;2&#x27;</span>
+<span style="display:block;">      AND get_json_object(activity_param, &#x27;$.popup_type&#x27;) = &#x27;groupbuycountdown_begin&#x27;</span>
+<span style="display:block;">      AND get_json_object(activity_param, &#x27;$.groupbuycountdown&#x27;) IN (&#x27;A&#x27;, &#x27;B&#x27;)</span>
+<span style="display:block;">      AND member_id &gt; 0</span>
+<span style="display:block;">    GROUP BY dt, member_id</span>
+<span style="display:block;">),</span>
+<span style="display:block;"></span>
+<span style="display:block;">-- Step2: 对照组 首屏首次曝光（popup_type=groupbuyfreeshipping）</span>
+<span style="display:block;">ctrl_first_screen AS (</span>
+<span style="display:block;">    SELECT</span>
+<span style="display:block;">        dt,</span>
+<span style="display:block;">        member_id,</span>
+<span style="display:block;">        MIN(log_timestamp) AS first_screen_ts</span>
+<span style="display:block;">    FROM dw.dw_tfc_elmt_eps_ug_di</span>
+<span class="lyra-err-line" style="display:block;background:rgba(255,95,126,.13);border-left:3px solid rgba(255,95,126,.5);margin:0 -22px;padding:0 22px 0 19px;position:relative;">    WHERE dt BETWEEN &#x27;20250526&#x27; AND &#x27;${sys.bizdate}&#x27;<span style="position:absolute;right:8px;top:0;bottom:0;display:flex;align-items:center;gap:4px;pointer-events:none;"><span style="font-size:9px;padding:1px 7px;background:rgba(255,95,126,.5);border-radius:3px;color:#fff;font-family:var(--mono);white-space:nowrap;opacity:.9;">⑥ 年份应为2026</span></span></span>
+<span class="lyra-err-line" style="display:block;background:rgba(91,111,255,.10);border-left:3px solid rgba(91,111,255,.5);margin:0 -22px;padding:0 22px 0 19px;position:relative;">      AND page_nm = &#x27;page_game&#x27;<span style="position:absolute;right:8px;top:0;bottom:0;display:flex;align-items:center;gap:4px;pointer-events:none;"><span style="font-size:9px;padding:1px 7px;background:rgba(91,111,255,.5);border-radius:3px;color:#fff;font-family:var(--mono);white-space:nowrap;opacity:.9;">⑧ 可选分区，本需求未要求</span></span></span>
+<span class="lyra-err-line" style="display:block;background:rgba(255,95,126,.13);border-left:3px solid rgba(255,95,126,.5);margin:0 -22px;padding:0 22px 0 19px;position:relative;">      AND p_game_tp = &#x27;205&#x27;<span style="position:absolute;right:8px;top:0;bottom:0;display:flex;align-items:center;gap:4px;pointer-events:none;"><span style="font-size:9px;padding:1px 7px;background:rgba(255,95,126,.5);border-radius:3px;color:#fff;font-family:var(--mono);white-space:nowrap;opacity:.9;">① game_tp=205是返佣游戏，拼团应为&#x27;106&#x27;</span></span></span>
+<span style="display:block;">      AND activity_nm = &#x27;expose_popup_selectattr&#x27;</span>
+<span style="display:block;">      AND page_tp = &#x27;2&#x27;</span>
+<span style="display:block;">      AND get_json_object(activity_param, &#x27;$.popup_type&#x27;) = &#x27;groupbuyfreeshipping&#x27;</span>
+<span style="display:block;">      AND member_id &gt; 0</span>
+<span style="display:block;background:rgba(255,95,126,.08);border-left:3px solid rgba(255,95,126,.5);margin:0 -22px;padding:1px 22px 1px 19px;font-style:italic;color:#ff5f7e;font-size:10.5px;">  -- ② ⚠️ 此处缺少团长过滤：AND COALESCE(get_json_object(page_param,'$.groupid'),'')=''</span><span style="display:block;">    GROUP BY dt, member_id</span>
+<span style="display:block;">),</span>
+<span style="display:block;"></span>
+<span style="display:block;">-- Step3: 实验组 + 对照组 合并首屏，打标实验组别</span>
+<span style="display:block;">all_first_screen AS (</span>
+<span style="display:block;">    SELECT dt, member_id, first_screen_ts, &#x27;实验组&#x27; AS grp</span>
+<span style="display:block;">    FROM exp_first_screen</span>
+<span style="display:block;">    UNION ALL</span>
+<span style="display:block;">    SELECT dt, member_id, first_screen_ts, &#x27;对照组&#x27; AS grp</span>
+<span style="display:block;">    FROM ctrl_first_screen</span>
+<span style="display:block;">),</span>
+<span style="display:block;"></span>
+<span style="display:block;">-- Step4: 立即购首次曝光（orderdrawer，不区分组别，取每天首次）</span>
+<span style="display:block;">order_drawer_first AS (</span>
+<span style="display:block;">    SELECT</span>
+<span style="display:block;">        dt,</span>
+<span style="display:block;">        member_id,</span>
+<span style="display:block;">        MIN(log_timestamp) AS first_drawer_ts</span>
+<span style="display:block;">    FROM dw.dw_tfc_elmt_eps_ug_di</span>
+<span class="lyra-err-line" style="display:block;background:rgba(255,95,126,.13);border-left:3px solid rgba(255,95,126,.5);margin:0 -22px;padding:0 22px 0 19px;position:relative;">    WHERE dt BETWEEN &#x27;20250526&#x27; AND &#x27;${sys.bizdate}&#x27;<span style="position:absolute;right:8px;top:0;bottom:0;display:flex;align-items:center;gap:4px;pointer-events:none;"><span style="font-size:9px;padding:1px 7px;background:rgba(255,95,126,.5);border-radius:3px;color:#fff;font-family:var(--mono);white-space:nowrap;opacity:.9;">⑥ 年份应为2026</span></span></span>
+<span class="lyra-err-line" style="display:block;background:rgba(91,111,255,.10);border-left:3px solid rgba(91,111,255,.5);margin:0 -22px;padding:0 22px 0 19px;position:relative;">      AND page_nm = &#x27;page_game&#x27;<span style="position:absolute;right:8px;top:0;bottom:0;display:flex;align-items:center;gap:4px;pointer-events:none;"><span style="font-size:9px;padding:1px 7px;background:rgba(91,111,255,.5);border-radius:3px;color:#fff;font-family:var(--mono);white-space:nowrap;opacity:.9;">⑧ 可选分区，本需求未要求</span></span></span>
+<span class="lyra-err-line" style="display:block;background:rgba(255,95,126,.13);border-left:3px solid rgba(255,95,126,.5);margin:0 -22px;padding:0 22px 0 19px;position:relative;">      AND p_game_tp = &#x27;205&#x27;<span style="position:absolute;right:8px;top:0;bottom:0;display:flex;align-items:center;gap:4px;pointer-events:none;"><span style="font-size:9px;padding:1px 7px;background:rgba(255,95,126,.5);border-radius:3px;color:#fff;font-family:var(--mono);white-space:nowrap;opacity:.9;">① game_tp=205是返佣游戏，拼团应为&#x27;106&#x27;</span></span></span>
+<span style="display:block;">      AND activity_nm = &#x27;expose_popup_selectattr&#x27;</span>
+<span style="display:block;">      AND page_tp = &#x27;2&#x27;</span>
+<span style="display:block;">      AND get_json_object(activity_param, &#x27;$.popup_type&#x27;) = &#x27;orderdrawer&#x27;</span>
+<span style="display:block;">      AND member_id &gt; 0</span>
+<span style="display:block;background:rgba(255,95,126,.08);border-left:3px solid rgba(255,95,126,.5);margin:0 -22px;padding:1px 22px 1px 19px;font-style:italic;color:#ff5f7e;font-size:10.5px;">  -- ② ⚠️ 此处缺少团长过滤：AND COALESCE(get_json_object(page_param,'$.groupid'),'')=''</span><span style="display:block;">    GROUP BY dt, member_id</span>
+<span style="display:block;">),</span>
+<span style="display:block;"></span>
+<span style="display:block;">-- Step5: 关联，计算时间间隔（秒），仅保留立即购曝光在首屏曝光之后的用户</span>
+<span style="display:block;">user_gap AS (</span>
+<span style="display:block;">    SELECT</span>
+<span style="display:block;">        a.dt,</span>
+<span style="display:block;">        a.grp,</span>
+<span style="display:block;">        a.member_id,</span>
+<span style="display:block;">        CAST((b.first_drawer_ts - a.first_screen_ts) / 1000 AS BIGINT) AS gap_seconds</span>
+<span style="display:block;">    FROM all_first_screen a</span>
+<span style="display:block;">    INNER JOIN order_drawer_first b</span>
+<span style="display:block;">        ON a.dt = b.dt</span>
+<span style="display:block;">        AND a.member_id = b.member_id</span>
+<span style="display:block;">    WHERE b.first_drawer_ts &gt; a.first_screen_ts</span>
+<span style="display:block;">),</span>
+<span style="display:block;"></span>
+<span style="display:block;">-- Step6: 按 dt + grp 内升序，NTILE(10) 分10分位组</span>
+<span style="display:block;">user_gap_with_ntile AS (</span>
+<span style="display:block;">    SELECT</span>
+<span style="display:block;">        dt,</span>
+<span style="display:block;">        grp,</span>
+<span style="display:block;">        member_id,</span>
+<span style="display:block;">        gap_seconds,</span>
+<span style="display:block;">        NTILE(10) OVER (PARTITION BY dt, grp ORDER BY gap_seconds ASC) AS ntile_group</span>
+<span style="display:block;">    FROM user_gap</span>
+<span style="display:block;">),</span>
+<span style="display:block;"></span>
+<span style="display:block;">-- Step7: 拼团成员订单（团长 member_role=1，团员 member_role=2，已支付，分区按dt拆）</span>
+<span style="display:block;">group_buy_order AS (</span>
+<span style="display:block;">    SELECT</span>
+<span style="display:block;">        dt,</span>
+<span style="display:block;">        CAST(user_id AS BIGINT) AS member_id,</span>
+<span style="display:block;">        member_role,</span>
+<span style="display:block;">        group_status,</span>
+<span style="display:block;">        bill_no,</span>
+<span style="display:block;">        bill_status</span>
+<span style="display:block;">    FROM dw.dw_mkt_group_buy_member_h</span>
+<span class="lyra-err-line" style="display:block;background:rgba(255,95,126,.13);border-left:3px solid rgba(255,95,126,.5);margin:0 -22px;padding:0 22px 0 19px;position:relative;">    WHERE dt BETWEEN &#x27;20250526&#x27; AND &#x27;${sys.bizdate}&#x27;<span style="position:absolute;right:8px;top:0;bottom:0;display:flex;align-items:center;gap:4px;pointer-events:none;"><span style="font-size:9px;padding:1px 7px;background:rgba(255,95,126,.5);border-radius:3px;color:#fff;font-family:var(--mono);white-space:nowrap;opacity:.9;">③ 全量快照表应取dt=&#x27;2026060323&#x27;，不能用BETWEEN扫分区</span></span></span>
+<span class="lyra-err-line" style="display:block;background:rgba(255,185,48,.10);border-left:3px solid rgba(255,185,48,.5);margin:0 -22px;padding:0 22px 0 19px;position:relative;">      AND bill_status = &#x27;已支付&#x27;<span style="position:absolute;right:8px;top:0;bottom:0;display:flex;align-items:center;gap:4px;pointer-events:none;"><span style="font-size:9px;padding:1px 7px;background:rgba(255,185,48,.5);border-radius:3px;color:#fff;font-family:var(--mono);white-space:nowrap;opacity:.9;">⑤ 数据字典：不限制bill_status，此过滤会漏单</span></span></span>
+<span style="display:block;">),</span>
+<span style="display:block;"></span>
+<span style="display:block;">-- Step8: 关联拼团订单到每个用户</span>
+<span style="display:block;">user_gap_with_order AS (</span>
+<span style="display:block;">    SELECT</span>
+<span style="display:block;">        t1.dt,</span>
+<span style="display:block;">        t1.grp,</span>
+<span style="display:block;">        t1.member_id,</span>
+<span style="display:block;">        t1.gap_seconds,</span>
+<span style="display:block;">        t1.ntile_group,</span>
+<span style="display:block;">        t2.member_role,</span>
+<span style="display:block;">        t2.group_status,</span>
+<span style="display:block;">        t2.bill_no</span>
+<span style="display:block;">    FROM user_gap_with_ntile t1</span>
+<span style="display:block;">    LEFT JOIN group_buy_order t2</span>
+<span style="display:block;">        ON t1.dt = t2.dt</span>
+<span style="display:block;">        AND t1.member_id = t2.member_id</span>
+<span style="display:block;">)</span>
+<span style="display:block;"></span>
+<span style="display:block;">-- Step9: 聚合输出</span>
+<span style="display:block;">SELECT</span>
+<span class="lyra-err-line" style="display:block;background:rgba(255,185,48,.10);border-left:3px solid rgba(255,185,48,.5);margin:0 -22px;padding:0 22px 0 19px;position:relative;">    dt                                                                 AS 日期,<span style="position:absolute;right:8px;top:0;bottom:0;display:flex;align-items:center;gap:4px;pointer-events:none;"><span style="font-size:9px;padding:1px 7px;background:rgba(255,185,48,.5);border-radius:3px;color:#fff;font-family:var(--mono);white-space:nowrap;opacity:.9;">⑦ Hive中文别名须加反引号，否则报ParseException</span></span></span>
+<span class="lyra-err-line" style="display:block;background:rgba(255,185,48,.10);border-left:3px solid rgba(255,185,48,.5);margin:0 -22px;padding:0 22px 0 19px;position:relative;">    grp                                                                AS 实验组别,<span style="position:absolute;right:8px;top:0;bottom:0;display:flex;align-items:center;gap:4px;pointer-events:none;"><span style="font-size:9px;padding:1px 7px;background:rgba(255,185,48,.5);border-radius:3px;color:#fff;font-family:var(--mono);white-space:nowrap;opacity:.9;">⑦ Hive中文别名须加反引号，否则报ParseException</span></span></span>
+<span class="lyra-err-line" style="display:block;background:rgba(255,185,48,.10);border-left:3px solid rgba(255,185,48,.5);margin:0 -22px;padding:0 22px 0 19px;position:relative;">    CONCAT(CAST(ntile_group * 10 AS STRING), &#x27;分位&#x27;)                  AS 分位组,<span style="position:absolute;right:8px;top:0;bottom:0;display:flex;align-items:center;gap:4px;pointer-events:none;"><span style="font-size:9px;padding:1px 7px;background:rgba(255,185,48,.5);border-radius:3px;color:#fff;font-family:var(--mono);white-space:nowrap;opacity:.9;">⑦ Hive中文别名须加反引号，否则报ParseException</span></span></span>
+<span style="display:block;">    AVG(gap_seconds)                                                   AS 时间间隔平均值_秒,</span>
+<span style="display:block;">    PERCENTILE_APPROX(gap_seconds, 0.5)                                AS 时间间隔中位数_秒,</span>
+<span style="display:block;">    MIN(gap_seconds)                                                   AS 时间间隔最小值_秒,</span>
+<span style="display:block;">    MAX(gap_seconds)                                                   AS 时间间隔最大值_秒,</span>
+<span style="display:block;">    COUNT(DISTINCT member_id)                                          AS 团长数,</span>
+<span style="display:block;">    COUNT(DISTINCT CASE WHEN member_role = 1 THEN bill_no END)         AS 团长拼团支付订单数,</span>
+<span class="lyra-err-line" style="display:block;background:rgba(255,95,126,.13);border-left:3px solid rgba(255,95,126,.5);margin:0 -22px;padding:0 22px 0 19px;position:relative;">    COUNT(DISTINCT CASE WHEN member_role = 2 THEN bill_no END)         AS 团员拼团支付订单数,<span style="position:absolute;right:8px;top:0;bottom:0;display:flex;align-items:center;gap:4px;pointer-events:none;"><span style="font-size:9px;padding:1px 7px;background:rgba(255,95,126,.5);border-radius:3px;color:#fff;font-family:var(--mono);white-space:nowrap;opacity:.9;">④ 应通过group_buy_id关联团员，不能靠member_role=2直接过滤</span></span></span>
+<span style="display:block;">    COUNT(DISTINCT CASE WHEN member_role = 1</span>
+<span style="display:block;">                         AND group_status = 2 THEN bill_no END)        AS 团长拼团成功支付订单数</span>
+<span style="display:block;">FROM user_gap_with_order</span>
+<span style="display:block;">GROUP BY dt, grp, ntile_group</span>
+<span style="display:block;">ORDER BY dt, grp, ntile_group</span>
+<span style="display:block;">LIMIT 100000</span></pre>
+                  <pre style="display:none;"><code id="c5l">-- Engine: Hive SQL
+-- 目标：实验组/对照组团长首屏首次曝光 -&gt; 立即购首次曝光 时间间隔分布（10分位）+ 拼团订单指标
+-- 日期范围：20250526 ~ ${sys.bizdate}（昨天）
+-- 来源表：
+--   dw.dw_tfc_elmt_eps_ug_di       曝光行为明细（分区：dt / page_nm / p_game_tp）
+--   dw.dw_mkt_group_buy_member_h   拼团成员订单表（分区：dt）
+
+WITH
+
+-- Step1: 实验组 首屏首次曝光（popup_type=groupbuycountdown_begin, groupbuycountdown IN(&#x27;A&#x27;,&#x27;B&#x27;)）
+exp_first_screen AS (
+    SELECT
+        dt,
+        member_id,
+        MIN(log_timestamp) AS first_screen_ts
+    FROM dw.dw_tfc_elmt_eps_ug_di
+    WHERE dt BETWEEN &#x27;20250526&#x27; AND &#x27;${sys.bizdate}&#x27;
+      AND page_nm = &#x27;page_game&#x27;
+      AND p_game_tp = &#x27;205&#x27;
+      AND activity_nm = &#x27;expose_popup_selectattr&#x27;
+      AND page_tp = &#x27;2&#x27;
+      AND get_json_object(activity_param, &#x27;$.popup_type&#x27;) = &#x27;groupbuycountdown_begin&#x27;
+      AND get_json_object(activity_param, &#x27;$.groupbuycountdown&#x27;) IN (&#x27;A&#x27;, &#x27;B&#x27;)
+      AND member_id &gt; 0
+    GROUP BY dt, member_id
+),
+
+-- Step2: 对照组 首屏首次曝光（popup_type=groupbuyfreeshipping）
+ctrl_first_screen AS (
+    SELECT
+        dt,
+        member_id,
+        MIN(log_timestamp) AS first_screen_ts
+    FROM dw.dw_tfc_elmt_eps_ug_di
+    WHERE dt BETWEEN &#x27;20250526&#x27; AND &#x27;${sys.bizdate}&#x27;
+      AND page_nm = &#x27;page_game&#x27;
+      AND p_game_tp = &#x27;205&#x27;
+      AND activity_nm = &#x27;expose_popup_selectattr&#x27;
+      AND page_tp = &#x27;2&#x27;
+      AND get_json_object(activity_param, &#x27;$.popup_type&#x27;) = &#x27;groupbuyfreeshipping&#x27;
+      AND member_id &gt; 0
+    GROUP BY dt, member_id
+),
+
+-- Step3: 实验组 + 对照组 合并首屏，打标实验组别
+all_first_screen AS (
+    SELECT dt, member_id, first_screen_ts, &#x27;实验组&#x27; AS grp
+    FROM exp_first_screen
+    UNION ALL
+    SELECT dt, member_id, first_screen_ts, &#x27;对照组&#x27; AS grp
+    FROM ctrl_first_screen
+),
+
+-- Step4: 立即购首次曝光（orderdrawer，不区分组别，取每天首次）
+order_drawer_first AS (
+    SELECT
+        dt,
+        member_id,
+        MIN(log_timestamp) AS first_drawer_ts
+    FROM dw.dw_tfc_elmt_eps_ug_di
+    WHERE dt BETWEEN &#x27;20250526&#x27; AND &#x27;${sys.bizdate}&#x27;
+      AND page_nm = &#x27;page_game&#x27;
+      AND p_game_tp = &#x27;205&#x27;
+      AND activity_nm = &#x27;expose_popup_selectattr&#x27;
+      AND page_tp = &#x27;2&#x27;
+      AND get_json_object(activity_param, &#x27;$.popup_type&#x27;) = &#x27;orderdrawer&#x27;
+      AND member_id &gt; 0
+    GROUP BY dt, member_id
+),
+
+-- Step5: 关联，计算时间间隔（秒），仅保留立即购曝光在首屏曝光之后的用户
+user_gap AS (
+    SELECT
+        a.dt,
+        a.grp,
+        a.member_id,
+        CAST((b.first_drawer_ts - a.first_screen_ts) / 1000 AS BIGINT) AS gap_seconds
+    FROM all_first_screen a
+    INNER JOIN order_drawer_first b
+        ON a.dt = b.dt
+        AND a.member_id = b.member_id
+    WHERE b.first_drawer_ts &gt; a.first_screen_ts
+),
+
+-- Step6: 按 dt + grp 内升序，NTILE(10) 分10分位组
+user_gap_with_ntile AS (
+    SELECT
+        dt,
+        grp,
+        member_id,
+        gap_seconds,
+        NTILE(10) OVER (PARTITION BY dt, grp ORDER BY gap_seconds ASC) AS ntile_group
+    FROM user_gap
+),
+
+-- Step7: 拼团成员订单（团长 member_role=1，团员 member_role=2，已支付，分区按dt拆）
+group_buy_order AS (
+    SELECT
+        dt,
+        CAST(user_id AS BIGINT) AS member_id,
+        member_role,
+        group_status,
+        bill_no,
+        bill_status
+    FROM dw.dw_mkt_group_buy_member_h
+    WHERE dt BETWEEN &#x27;20250526&#x27; AND &#x27;${sys.bizdate}&#x27;
+      AND bill_status = &#x27;已支付&#x27;
+),
+
+-- Step8: 关联拼团订单到每个用户
+user_gap_with_order AS (
+    SELECT
+        t1.dt,
+        t1.grp,
+        t1.member_id,
+        t1.gap_seconds,
+        t1.ntile_group,
+        t2.member_role,
+        t2.group_status,
+        t2.bill_no
+    FROM user_gap_with_ntile t1
+    LEFT JOIN group_buy_order t2
+        ON t1.dt = t2.dt
+        AND t1.member_id = t2.member_id
+)
+
+-- Step9: 聚合输出
+SELECT
+    dt                                                                 AS 日期,
+    grp                                                                AS 实验组别,
+    CONCAT(CAST(ntile_group * 10 AS STRING), &#x27;分位&#x27;)                  AS 分位组,
+    AVG(gap_seconds)                                                   AS 时间间隔平均值_秒,
+    PERCENTILE_APPROX(gap_seconds, 0.5)                                AS 时间间隔中位数_秒,
+    MIN(gap_seconds)                                                   AS 时间间隔最小值_秒,
+    MAX(gap_seconds)                                                   AS 时间间隔最大值_秒,
+    COUNT(DISTINCT member_id)                                          AS 团长数,
+    COUNT(DISTINCT CASE WHEN member_role = 1 THEN bill_no END)         AS 团长拼团支付订单数,
+    COUNT(DISTINCT CASE WHEN member_role = 2 THEN bill_no END)         AS 团员拼团支付订单数,
+    COUNT(DISTINCT CASE WHEN member_role = 1
+                         AND group_status = 2 THEN bill_no END)        AS 团长拼团成功支付订单数
+FROM user_gap_with_order
+GROUP BY dt, grp, ntile_group
+ORDER BY dt, grp, ntile_group
+LIMIT 100000</code></pre>
+                </div>
+              </div>
+            </div>
+            <div class="wbanner" style="margin-top:14px">
+              <span class="wbanner-icon">ℹ️</span>
+              <div>
+                <div class="wbanner-ttl">数据字典补充建议</div>
+                <div class="wbanner-body"><code>dim.dim_test_users</code> 未收录在当前业务线数据字典，测试用户过滤已跳过。建议联系 Jeff Zhong 补充后手动添加过滤条件。</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 关键说明 -->
+        <div class="card open">
+          <div class="card-head" onclick="tog(this)">
+            <div class="card-icon ci-rose">📋</div>
+            <div class="card-titles">
+              <h4>步骤6 · 关键说明</h4>
+              <p>指标口径 · 数据过滤 · 业务影响 · 性能提示</p>
+            </div>
+            <span class="card-badge cb-info">口径备注</span>
+            <span class="chevron">›</span>
+          </div>
+          <div class="card-body">
+            <table class="ntable">
+              <thead><tr><th>说明项</th><th>详情</th></tr></thead>
+              <tbody>
+                <tr><td>时间间隔</td><td>（orderdrawer首次曝光ts − 首屏首次ts）÷ 1000，单位秒；已过滤「立即购早于首屏」异常记录</td></tr>
+                <tr><td>团长识别</td><td><code>COALESCE(get_json_object(page_param,'$.groupid'),'')=''</code>；groupid为空代表自己开团（团长）</td></tr>
+                <tr><td>game_tp=106</td><td>GROUPBUY拼团游戏，已在数据字典验证枚举值</td></tr>
+                <tr><td>10分位分组</td><td>NTILE(10) PARTITION BY dt,exp_group · 每天每组独立计算 · bucket=1为最快10%</td></tr>
+                <tr><td>团长支付订单</td><td>member_role=1的所有bill_no去重，不限制bill_status（数据字典说明：表中所有订单均为支付订单）</td></tr>
+                <tr><td>团员支付订单</td><td>通过group_buy_id关联同拼团的member_role=2成员的bill_no，统计团员视角订单量</td></tr>
+                <tr><td>团长成功订单</td><td>group_status=2（已成团）的团长订单，代表拼团完成后的成功支付</td></tr>
+                <tr><td>快照表分区</td><td>dw_mkt_group_buy_member_h为全量快照，取dt='2026060323'，通过create_time字段过滤日期范围</td></tr>
+                <tr><td>业务影响</td><td>2026-05-27 US站点分控拦截，首单数预计受影响30%~40%；KR/JP翻牌活动变更，不影响拼团游戏数据</td></tr>
+                <tr><td>性能提示</td><td>曝光表已加p_game_tp='106'分区裁剪；ntile_base被Step7/8/9三个CTE复用，数据量大时可考虑临时表缓存</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  </div><!-- end chat -->
+
+  <!-- ═══ SUMMARY ═══ -->
+  <div class="divider fi">
+    <div class="divider-line"></div>
+    <div class="divider-label">// Skill 核心能力总结</div>
+    <div class="divider-line"></div>
+  </div>
+  <div class="sumgrid fi">
+    <div class="sumcard sc-teal">
+      <div class="sumcard-icon">🎯</div>
+      <div class="sumcard-title">口径自动驱动</div>
+      <div class="sumcard-desc">所有规则严格从 metric-definitions.md 查找；团长识别、时间换算单位、page_tp含义均来自数据字典，不凭空编造</div>
+    </div>
+    <div class="sumcard sc-blue">
+      <div class="sumcard-icon">🔍</div>
+      <div class="sumcard-title">选表强制验证</div>
+      <div class="sumcard-desc">用增专属(_ug_) + 天级(_di) 优于通用小时级表；grep 搜索 data-dictionary.md 后才决策，在 SQL 头部注释写明选表理由</div>
+    </div>
+    <div class="sumcard sc-amb">
+      <div class="sumcard-icon">✅</div>
+      <div class="sumcard-title">自动校验</div>
+      <div class="sumcard-desc">每次生成后自动执行 sql-validator.py；ERROR 强制修正；WARN 查数据字典后决定是否跳过，全程 0 ERROR 才输出</div>
+    </div>
+    <div class="sumcard sc-rose">
+      <div class="sumcard-icon">⚡</div>
+      <div class="sumcard-title">方言转换</div>
+      <div class="sumcard-desc">一键 Hive→Trino；逐条检查方言规则：STRING→VARCHAR / GET_JSON_OBJECT→JSON_EXTRACT_SCALAR / PERCENTILE_APPROX→APPROX_PERCENTILE；转换后再次校验</div>
+    </div>
+    <div class="sumcard sc-teal">
+      <div class="sumcard-icon">♻️</div>
+      <div class="sumcard-title">自然语言迭代</div>
+      <div class="sumcard-desc">「增加用户身份」「改为跨日汇总」「增加订单维度」三句话，AI 自动识别精确改动点，保留未改部分，不重新整体生成</div>
+    </div>
+    <div class="sumcard sc-blue">
+      <div class="sumcard-icon">🚀</div>
+      <div class="sumcard-title">多业务线隔离</div>
+      <div class="sumcard-desc">裂变拉新 / 新客转化 / 商品上架各自独立数据字典和模板；通过 business_lines.yaml 统一注册，新增业务线零代码成本</div>
+    </div>
+  </div>
+
+</div>
+
+<footer>
+  <div class="foot-brand">SHEIN · <em>Write-SQL Skill</em> · 裂变拉新业务线</div>
+  <div class="foot-meta">演示时间: 2026-06-04<br>数据范围: 20260526 ~ 20260603 · Trino SQL · 5轮对话</div>
+</footer>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('pre code').forEach(el => hljs.highlightElement(el));
+  });
+  function tog(head) {
+    head.closest('.card').classList.toggle('open');
+  }
+  function stab(btn, id) {
+    const wrap = btn.closest('.card-body') || btn.closest('.sql-wrap');
+    wrap.querySelectorAll('.stab').forEach(b => b.classList.remove('on'));
+    btn.classList.add('on');
+    wrap.querySelectorAll('.spane').forEach(p => p.classList.remove('on'));
+    document.getElementById('pane-' + id).classList.add('on');
+  }
+  function cp(id, btn) {
+    const txt = document.getElementById(id).textContent;
+    navigator.clipboard.writeText(txt).then(() => {
+      btn.classList.add('ok');
+      btn.innerHTML = '✓ 已复制';
+      setTimeout(() => { btn.classList.remove('ok'); btn.innerHTML = '📋 复制'; }, 2000);
+    });
+  }
+  const io = new IntersectionObserver(entries => {
+    entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('in'); });
+  }, { threshold: 0.05 });
+  document.querySelectorAll('.fi').forEach(el => io.observe(el));
+</script>
+</body>
+</html>
