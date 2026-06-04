@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>拼团游戏 AB 实验 · 首屏→立即购决策时长分析报告</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.4.3/echarts.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:       #f7f8fc;
+    --card:     #ffffff;
+    --border:   #e8ecf4;
+    --text:     #1a2035;
+    --text2:    #5a6478;
+    --text3:    #9aa3b8;
+    --teal:     #00b578;
+    --teal-dim: rgba(0,181,120,.10);
+    --teal-bdr: rgba(0,181,120,.28);
+    --blue:     #3b6ff5;
+    --blue-dim: rgba(59,111,245,.10);
+    --blue-bdr: rgba(59,111,245,.25);
+    --amber:    #f59e0b;
+    --amb-dim:  rgba(245,158,11,.10);
+    --amb-bdr:  rgba(245,158,11,.28);
+    --rose:     #ef4444;
+    --ros-dim:  rgba(239,68,68,.10);
+    --ros-bdr:  rgba(239,68,68,.25);
+    --purple:   #8b5cf6;
+    --mono: 'JetBrains Mono', monospace;
+    --sans: 'Inter', -apple-system, sans-serif;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body { background: var(--bg); color: var(--text); font-family: var(--sans); font-size: 14px; line-height: 1.65; }
+  ::-webkit-scrollbar { width: 5px; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  /* ── TOPBAR ── */
+  .topbar {
+    background: var(--card);
+    border-bottom: 1px solid var(--border);
+    padding: 0 40px;
+    height: 54px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 1px 8px rgba(0,0,0,.05);
+  }
+  .topbar-brand { font-size: 13px; font-weight: 600; color: var(--text); display: flex; align-items: center; gap: 10px; }
+  .topbar-brand .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--teal); }
+  .topbar-meta { font-family: var(--mono); font-size: 11px; color: var(--text3); display: flex; align-items: center; gap: 16px; }
+  .topbar-meta a { color: var(--blue); text-decoration: none; }
+  .topbar-meta a:hover { text-decoration: underline; }
+  .tag { font-family: var(--mono); font-size: 10px; padding: 2px 9px; border-radius: 10px; border: 1px solid; white-space: nowrap; }
+  .tag-g { background: var(--teal-dim); border-color: var(--teal-bdr); color: var(--teal); }
+  .tag-b { background: var(--blue-dim); border-color: var(--blue-bdr); color: var(--blue); }
+  .tag-a { background: var(--amb-dim);  border-color: var(--amb-bdr);  color: var(--amber); }
+
+  /* ── HERO ── */
+  .hero {
+    background: linear-gradient(135deg, #1a2035 0%, #12243d 60%, #0e2d2a 100%);
+    padding: 56px 40px 52px;
+    color: #fff;
+  }
+  .hero-meta { font-family: var(--mono); font-size: 11px; color: rgba(255,255,255,.45); margin-bottom: 16px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .hero-meta span { display: flex; align-items: center; gap: 5px; }
+  .hero h1 { font-size: clamp(22px, 3vw, 34px); font-weight: 700; letter-spacing: -.02em; line-height: 1.2; margin-bottom: 12px; }
+  .hero h1 em { color: #00e5a0; font-style: normal; }
+  .hero-desc { font-size: 14px; color: rgba(255,255,255,.6); max-width: 640px; line-height: 1.8; margin-bottom: 28px; }
+  .hero-pills { display: flex; flex-wrap: wrap; gap: 8px; }
+  .hpill { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; padding: 5px 14px; border-radius: 20px; border: 1px solid rgba(255,255,255,.15); background: rgba(255,255,255,.07); color: rgba(255,255,255,.8); }
+
+  /* ── WRAP ── */
+  .wrap { max-width: 1100px; margin: 0 auto; padding: 36px 28px 80px; }
+
+  /* ── SECTION ── */
+  .section-title {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 48px 0 20px;
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--text);
+  }
+  .section-title .num {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    background: var(--blue);
+    color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+  .section-divider { height: 1px; background: var(--border); margin: 0 0 20px; }
+
+  /* ── CARDS ── */
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 22px 26px; box-shadow: 0 1px 4px rgba(0,0,0,.04); }
+  .card + .card { margin-top: 14px; }
+
+  /* ── KPIS ── */
+  .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 24px; }
+  .kpi { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; position: relative; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,.04); }
+  .kpi::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; }
+  .kpi-teal::before { background: var(--teal); }
+  .kpi-blue::before { background: var(--blue); }
+  .kpi-amb::before  { background: var(--amber); }
+  .kpi-rose::before { background: var(--rose); }
+  .kpi-label { font-size: 11.5px; color: var(--text2); margin-bottom: 8px; font-weight: 500; }
+  .kpi-value { font-size: 28px; font-weight: 700; letter-spacing: -.03em; line-height: 1; margin-bottom: 6px; }
+  .kpi-sub { font-size: 11px; color: var(--text3); }
+  .kpi-teal .kpi-value { color: var(--teal); }
+  .kpi-blue .kpi-value { color: var(--blue); }
+  .kpi-amb  .kpi-value { color: var(--amber); }
+  .kpi-rose .kpi-value { color: var(--rose); }
+
+  /* ── INSIGHT BOX ── */
+  .insight { display: flex; gap: 14px; padding: 16px 20px; border-radius: 10px; border: 1px solid; margin-bottom: 10px; }
+  .insight-teal { background: var(--teal-dim); border-color: var(--teal-bdr); }
+  .insight-blue  { background: var(--blue-dim); border-color: var(--blue-bdr); }
+  .insight-amb   { background: var(--amb-dim);  border-color: var(--amb-bdr); }
+  .insight-rose  { background: var(--ros-dim);  border-color: var(--ros-bdr); }
+  .insight-icon { font-size: 18px; flex-shrink: 0; line-height: 1.4; }
+  .insight-title { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+  .insight-teal .insight-title { color: var(--teal); }
+  .insight-blue .insight-title  { color: var(--blue); }
+  .insight-amb  .insight-title  { color: var(--amber); }
+  .insight-rose .insight-title  { color: var(--rose); }
+  .insight-body { font-size: 12.5px; color: var(--text2); line-height: 1.7; }
+  .insight-body strong { color: var(--text); }
+
+  /* ── CHARTS ── */
+  .chart-wrap { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 22px 26px 10px; box-shadow: 0 1px 4px rgba(0,0,0,.04); margin-bottom: 14px; }
+  .chart-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 16px; flex-wrap: wrap; gap: 12px; }
+  .chart-title { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 3px; }
+  .chart-sub { font-size: 11.5px; color: var(--text2); }
+  .chart-legend { display: flex; flex-wrap: wrap; gap: 12px; font-size: 11.5px; color: var(--text2); }
+  .legend-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 5px; vertical-align: middle; }
+  .chart-note { font-size: 11px; color: var(--text3); padding: 8px 0 12px; text-align: center; }
+
+  /* ── TABLE ── */
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  th { background: #f0f3fa; padding: 9px 13px; text-align: left; font-size: 11px; font-weight: 600; color: var(--text2); letter-spacing: .04em; text-transform: uppercase; border: 1px solid var(--border); white-space: nowrap; }
+  td { padding: 9px 13px; border: 1px solid var(--border); color: var(--text2); vertical-align: middle; }
+  td.num { font-family: var(--mono); font-size: 12px; text-align: right; }
+  td.label { font-weight: 500; color: var(--text); }
+  tr:hover td { background: #f9fafc; }
+  .badge-exp  { background: rgba(0,181,120,.12); color: var(--teal); padding: 2px 9px; border-radius: 10px; font-size: 11px; font-weight: 500; white-space: nowrap; }
+  .badge-ctrl { background: rgba(59,111,245,.10); color: var(--blue); padding: 2px 9px; border-radius: 10px; font-size: 11px; font-weight: 500; white-space: nowrap; }
+  .badge-mbr  { background: rgba(245,158,11,.10); color: var(--amber); padding: 2px 9px; border-radius: 10px; font-size: 11px; font-weight: 500; white-space: nowrap; }
+  .delta-pos { color: #ef4444; font-family: var(--mono); font-size: 11px; }
+  .delta-neg { color: var(--teal); font-family: var(--mono); font-size: 11px; }
+  .delta-neu { color: var(--text3); font-family: var(--mono); font-size: 11px; }
+
+  /* ── CONCLUSIONS ── */
+  .concl-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
+  .concl-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; box-shadow: 0 1px 4px rgba(0,0,0,.04); }
+  .concl-card h4 { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+  .concl-card p { font-size: 12.5px; color: var(--text2); line-height: 1.75; }
+
+  /* ── FOOTER ── */
+  footer { background: var(--card); border-top: 1px solid var(--border); padding: 20px 40px; display: flex; align-items: center; justify-content: space-between; font-size: 12px; color: var(--text3); flex-wrap: wrap; gap: 10px; }
+  footer a { color: var(--blue); text-decoration: none; }
+  footer a:hover { text-decoration: underline; }
+
+  code { font-family: var(--mono); font-size: 11.5px; background: rgba(59,111,245,.07); padding: 1px 5px; border-radius: 3px; color: var(--blue); }
+
+  @media (max-width: 768px) {
+    .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+    .concl-grid { grid-template-columns: 1fr; }
+    .topbar { padding: 0 20px; }
+    .hero { padding: 36px 20px 32px; }
+    .wrap { padding: 24px 16px 60px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<nav class="topbar">
+  <div class="topbar-brand">
+    <span class="dot"></span>
+    拼团游戏 AB 实验分析报告
+  </div>
+  <div class="topbar-meta">
+    <span>数据周期: 2026-05-26 ~ 2026-05-31</span>
+    <a href="https://arc.sheincorp.cn/excel/3401352252787539968?scode=UDepD30sC3CsD0401ma1am00" target="_blank">📎 原始数据</a>
+    <span class="tag tag-b">游戏类型: GROUPBUY (106)</span>
+  </div>
+</nav>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-meta">
+    <span>📅 2026-06-04</span>
+    <span>👤 数据分析团队</span>
+    <span>🔖 AB实验复盘</span>
+  </div>
+  <h1>拼团游戏 AB 实验<br>首屏→<em>立即购决策时长</em>分布分析</h1>
+  <div class="hero-desc">
+    本报告分析实验组（倒计时首屏）与对照组（免邮首屏）在拼团游戏中，
+    团长/团员从<strong style="color:rgba(255,255,255,.9)">首屏首次曝光</strong>到
+    <strong style="color:rgba(255,255,255,.9)">立即购页面首次曝光</strong>的时间间隔分布差异，
+    以时间维度评估两种首屏设计对用户决策速度的影响。
+  </div>
+  <div class="hero-pills">
+    <span class="hpill">🧪 实验组：倒计时首屏（A/B variant）</span>
+    <span class="hpill">⚖️ 对照组：免邮首屏</span>
+    <span class="hpill">📊 10分位分布分析</span>
+    <span class="hpill">🔗 <a href="https://arc.sheincorp.cn/excel/3401352252787539968?scode=UDepD30sC3CsD0401ma1am00" target="_blank" style="color:rgba(255,255,255,.9)">原始数据链接</a></span>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="wrap">
+
+  <!-- ── Section 0: Exec KPIs ── -->
+  <div class="kpi-grid" style="margin-top:8px">
+    <div class="kpi kpi-teal">
+      <div class="kpi-label">实验组团长·用户数</div>
+      <div class="kpi-value">2,877</div>
+      <div class="kpi-sub">user-day 去重 · 每分位桶</div>
+    </div>
+    <div class="kpi kpi-blue">
+      <div class="kpi-label">对照组团长·用户数</div>
+      <div class="kpi-value">8,576</div>
+      <div class="kpi-sub">user-day 去重 · 每分位桶（约3倍体量）</div>
+    </div>
+    <div class="kpi kpi-amb">
+      <div class="kpi-label">P50 中位数决策时长对比</div>
+      <div class="kpi-value">+0.8%</div>
+      <div class="kpi-sub">实验 36.84s vs 对照 36.56s · 差异极小</div>
+    </div>
+    <div class="kpi kpi-rose">
+      <div class="kpi-label">P100 中位数决策时长对比</div>
+      <div class="kpi-value">−12%</div>
+      <div class="kpi-sub">实验 331s vs 对照 376s · 长尾收窄</div>
+    </div>
+  </div>
+
+  <!-- ── Section 1: 背景说明 ── -->
+  <div class="section-title">
+    <span class="num">1</span>
+    实验背景与分析说明
+  </div>
+  <div class="section-divider"></div>
+
+  <div class="card">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;">
+      <div>
+        <div style="font-size:12px;font-weight:600;color:var(--text2);letter-spacing:.06em;text-transform:uppercase;margin-bottom:10px;">实验设计</div>
+        <div style="font-size:13px;color:var(--text2);line-height:1.85;">
+          <div style="margin-bottom:8px;padding:10px 14px;background:var(--teal-dim);border:1px solid var(--teal-bdr);border-radius:8px;">
+            <div style="font-weight:600;color:var(--teal);font-size:12px;margin-bottom:3px;">🧪 实验组（倒计时首屏）</div>
+            <code>popup_type = 'groupbuycountdown_begin'</code><br>
+            <code>groupbuycountdown IN ('A', 'B')</code><br>
+            <div style="margin-top:5px;font-size:12px;color:var(--text2);">首屏展示倒计时组件，制造决策紧迫感</div>
+          </div>
+          <div style="padding:10px 14px;background:var(--blue-dim);border:1px solid var(--blue-bdr);border-radius:8px;">
+            <div style="font-weight:600;color:var(--blue);font-size:12px;margin-bottom:3px;">⚖️ 对照组（免邮首屏）</div>
+            <code>popup_type = 'groupbuyfreeshipping'</code><br>
+            <div style="margin-top:5px;font-size:12px;color:var(--text2);">首屏展示免邮权益，以价值利益驱动决策</div>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:12px;font-weight:600;color:var(--text2);letter-spacing:.06em;text-transform:uppercase;margin-bottom:10px;">指标口径说明</div>
+        <div style="font-size:13px;color:var(--text2);line-height:1.85;">
+          <div style="margin-bottom:6px;">📌 <strong style="color:var(--text)">间隔时长</strong>：从用户当天<strong style="color:var(--text)">首屏首次曝光</strong>（<code>expose_popup_selectattr</code>）到当天该时间点之后<strong style="color:var(--text)">立即购页面首次曝光</strong>（<code>popup_type='orderdrawer'</code>）的时间差，单位秒</div>
+          <div style="margin-bottom:6px;">📌 <strong style="color:var(--text)">统计粒度</strong>：user + 天，同一用户多天各算一条记录（跨日汇总后按组×角色整体分桶）</div>
+          <div style="margin-bottom:6px;">📌 <strong style="color:var(--text)">分位分桶</strong>：NTILE(10) 升序，各分桶≈等量用户，Bucket 1=最快10%，Bucket 10=最慢10%</div>
+          <div style="padding:8px 12px;background:var(--amb-dim);border:1px solid var(--amb-bdr);border-radius:7px;font-size:12px;color:var(--text2);">⚠️ <strong style="color:var(--amber)">注意</strong>：实验组数据中仅有团长，无团员数据。推测原因：实验组首屏(<code>groupbuycountdown_begin</code>)仅在团长开团流程中触发，团员参团路径不经过此弹窗。</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Section 2: 实验组 vs 对照组 团长 ── -->
+  <div class="section-title">
+    <span class="num">2</span>
+    实验组 vs 对照组 · 团长决策时长对比
+  </div>
+  <div class="section-divider"></div>
+
+  <!-- Chart 1: 折线图 -->
+  <div class="chart-wrap">
+    <div class="chart-header">
+      <div>
+        <div class="chart-title">团长决策时长分位分布（P10–P90）</div>
+        <div class="chart-sub">各分位桶内时间间隔中位数（秒）· P100极值另见长尾分析</div>
+      </div>
+      <div class="chart-legend">
+        <span><span class="legend-dot" style="background:#00b578"></span>实验组·团长</span>
+        <span><span class="legend-dot" style="background:#3b6ff5"></span>对照组·团长</span>
+        <span><span class="legend-dot" style="background:#f59e0b;opacity:.5"></span>对照组·团员（参考）</span>
+      </div>
+    </div>
+    <div id="chart-line" style="height:340px"></div>
+    <div class="chart-note">横轴为分位段（1=最快10%用户 → 9=最慢10%用户，P100极端尾部已排除）· 纵轴为组内中位数（秒）</div>
+  </div>
+
+  <!-- Chart 2: 差异图 -->
+  <div class="chart-wrap">
+    <div class="chart-header">
+      <div>
+        <div class="chart-title">实验组 vs 对照组 团长中位数差异率（%）</div>
+        <div class="chart-sub">正值 = 实验组更慢，负值 = 实验组更快</div>
+      </div>
+    </div>
+    <div id="chart-diff" style="height:260px"></div>
+    <div class="chart-note">差异率 = (实验组中位数 − 对照组中位数) / 对照组中位数 × 100%</div>
+  </div>
+
+  <!-- Key insights -->
+  <div class="insight insight-teal">
+    <span class="insight-icon">🔍</span>
+    <div>
+      <div class="insight-title">P10–P50 分位：实验组略慢（+0.8%～+7%），差异可忽略</div>
+      <div class="insight-body">
+        快速决策群体（前50%用户）在两组间几乎无差异：P50中位数实验组 <strong>36.84s</strong> vs 对照组 <strong>36.56s</strong>，差值仅 0.28 秒（+0.77%）。
+        P10 分位差异稍大（+6.8%），但绝对值仅 0.47 秒，不具备业务实质意义。
+        说明<strong>倒计时设计对快速决策用户无显著加速作用</strong>，免邮策略对这部分用户同样高效。
+      </div>
+    </div>
+  </div>
+  <div class="insight insight-blue">
+    <span class="insight-icon">📉</span>
+    <div>
+      <div class="insight-title">P70–P100 分位：实验组更快（−0.6%～−12%），长尾压缩效果初显</div>
+      <div class="insight-body">
+        决策迟缓群体（后30%+用户）中，实验组开始展现优势：
+        P80中位数实验 <strong>92.23s</strong> vs 对照 <strong>94.38s</strong>（−2.3%）；
+        P90 中位数实验 <strong>144.77s</strong> vs 对照 <strong>149.48s</strong>（−3.2%）；
+        P100 中位数实验 <strong>331s</strong> vs 对照 <strong>376s</strong>（<strong style="color:var(--blue)">−12%</strong>）。
+        倒计时机制对犹豫型用户形成心理催促，<strong>有效压缩长尾决策时间</strong>。
+      </div>
+    </div>
+  </div>
+  <div class="insight insight-amb">
+    <span class="insight-icon">⚖️</span>
+    <div>
+      <div class="insight-title">整体结论：倒计时对决策速度的提升效果有限但方向正确</div>
+      <div class="insight-body">
+        从全体用户看，两组 P50 中位数几乎持平（实验 36.84s vs 对照 36.56s）。倒计时设计的提速效果仅在 P70+ 的慢速用户中体现，整体影响温和。
+        值得注意的是，实验组用户量（~2877/桶）仅为对照组（~8576/桶）的 <strong>33.5%</strong>，
+        流量差异较大，建议结合转化率、成团率等<strong>结果指标</strong>综合判断实验效果，单独看决策时长尚不足以支撑结论。
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Section 3: 团长 vs 团员 ── -->
+  <div class="section-title">
+    <span class="num">3</span>
+    对照组 · 团长 vs 团员 决策行为差异
+  </div>
+  <div class="section-divider"></div>
+
+  <div class="chart-wrap">
+    <div class="chart-header">
+      <div>
+        <div class="chart-title">对照组·团长 vs 团员 决策时长全分位对比</div>
+        <div class="chart-sub">中位数（秒）· P10–P100 完整展示（注意 P100 数值极高，使用对数刻度）</div>
+      </div>
+      <div class="chart-legend">
+        <span><span class="legend-dot" style="background:#3b6ff5"></span>对照组·团长（n≈8,576/桶）</span>
+        <span><span class="legend-dot" style="background:#f59e0b"></span>对照组·团员（n≈141/桶）</span>
+      </div>
+    </div>
+    <div id="chart-role" style="height:320px"></div>
+    <div class="chart-note">纵轴采用对数刻度以兼顾 P100 极端值可视化</div>
+  </div>
+
+  <!-- Chart: 倍率 -->
+  <div class="chart-wrap">
+    <div class="chart-header">
+      <div>
+        <div class="chart-title">团员 vs 团长 决策时长倍率（中位数）</div>
+        <div class="chart-sub">团员中位数 ÷ 团长中位数 · 倍率越高说明团员越慢</div>
+      </div>
+    </div>
+    <div id="chart-ratio" style="height:240px"></div>
+    <div class="chart-note">数值 = 对照组团员中位数 / 对照组团长中位数</div>
+  </div>
+
+  <div class="insight insight-rose">
+    <span class="insight-icon">🚨</span>
+    <div>
+      <div class="insight-title">团员决策显著慢于团长，且高分位差距急剧扩大</div>
+      <div class="insight-body">
+        对照组中，团员 P50 中位数 <strong>64.78s</strong>，是团长（<strong>36.56s</strong>）的 <strong>1.77 倍</strong>；
+        P90 中位数团员 <strong>510s（约8.5分钟）</strong>，是团长（149s）的 <strong>3.4 倍</strong>；
+        P100 中位数团员 <strong>3,270s（约54分钟）</strong>，是团长（376s）的 <strong>8.7 倍</strong>。
+        说明<strong>团员的决策链路本质上更复杂</strong>——团员不主动发起，需浏览商品、比价、决定是否加入，行为路径与团长存在根本性差异。
+        ⚠️ 团员样本量较小（~141/桶），结论仅供参考，建议扩大样本后复验。
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Section 4: 原始数据 ── -->
+  <div class="section-title">
+    <span class="num">4</span>
+    原始数据明细
+    <a href="https://arc.sheincorp.cn/excel/3401352252787539968?scode=UDepD30sC3CsD0401ma1am00" target="_blank" style="margin-left:auto;font-size:12px;font-weight:400;color:var(--blue);text-decoration:none;">📎 查看完整数据源 →</a>
+  </div>
+  <div class="section-divider"></div>
+
+  <div class="card">
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>实验组别</th>
+            <th>角色身份</th>
+            <th>分位段</th>
+            <th style="text-align:right">平均时长(s)</th>
+            <th style="text-align:right">中位数(s)</th>
+            <th style="text-align:right">最小值(s)</th>
+            <th style="text-align:right">最大值(s)</th>
+            <th style="text-align:right">用户数</th>
+            <th style="text-align:right">实验vs对照中位数差异</th>
+          </tr>
+        </thead>
+        <tbody id="data-table"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── Section 5: 结论建议 ── -->
+  <div class="section-title">
+    <span class="num">5</span>
+    核心结论与行动建议
+  </div>
+  <div class="section-divider"></div>
+
+  <div class="concl-grid">
+    <div class="concl-card" style="border-left:3px solid var(--teal)">
+      <h4>✅ 倒计时对慢速用户有提速价值</h4>
+      <p>P70+ 的迟缓型用户（占总体约30%）在倒计时首屏下决策时间缩短 0.6%～12%，P100 尾部压缩效果最明显（−12%）。倒计时机制能有效催促尚在观望的用户，符合预期。</p>
+    </div>
+    <div class="concl-card" style="border-left:3px solid var(--blue)">
+      <h4>⚠️ 决策速度指标不能单独支撑实验结论</h4>
+      <p>整体 P50 差异仅 0.28 秒（+0.77%），无显著统计差异。建议同步分析<strong>成团率、首单转化率、GMV</strong> 等结果指标，才能全面评估倒计时 vs 免邮策略的优劣。</p>
+    </div>
+    <div class="concl-card" style="border-left:3px solid var(--amber)">
+      <h4>🔎 需补充团员端实验覆盖</h4>
+      <p>实验组中团员数据缺失，导致无法比较两种首屏策略对团员决策的影响。建议在下一期实验中，明确覆盖团员参团路径，获取完整的双角色对比数据。</p>
+    </div>
+    <div class="concl-card" style="border-left:3px solid var(--rose)">
+      <h4>💡 团员决策链路值得独立优化</h4>
+      <p>团员 P50 决策时长（65s）是团长（37s）的 1.77 倍，P90 达 510s。团员决策慢是系统性问题，建议单独设计针对团员的<strong>商品决策辅助模块</strong>，如推荐理由、限时优惠提示等，以提升参团转化效率。</p>
+    </div>
+  </div>
+
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <div>拼团游戏 AB 实验分析报告 · 数据周期 2026-05-26 ~ 2026-05-31 · 游戏类型 GROUPBUY (game_tp=106)</div>
+  <div>
+    原始数据：
+    <a href="https://arc.sheincorp.cn/excel/3401352252787539968?scode=UDepD30sC3CsD0401ma1am00" target="_blank">
+      arc.sheincorp.cn · 拼团0527数据结果
+    </a>
+    &nbsp;·&nbsp; 生成时间：2026-06-04
+  </div>
+</footer>
+
+<script>
+// ── Raw Data ──
+const raw = [
+  ['实验组','团长','10分位', 7.31,  7.37,  0.47, 11.56, 2877],
+  ['实验组','团长','20分位',14.57, 14.55, 11.56, 17.54, 2877],
+  ['实验组','团长','30分位',20.66, 20.58, 17.55, 23.93, 2876],
+  ['实验组','团长','40分位',27.78, 27.76, 23.93, 31.87, 2876],
+  ['实验组','团长','50分位',36.99, 36.84, 31.87, 42.74, 2876],
+  ['实验组','团长','60分位',49.67, 49.43, 42.74, 57.39, 2876],
+  ['实验组','团长','70分位',67.00, 66.69, 57.39, 77.85, 2876],
+  ['实验组','团长','80分位',93.41, 92.23, 77.86,113.00, 2876],
+  ['实验组','团长','90分位',147.11,144.77,113.03,193.36, 2876],
+  ['实验组','团长','100分位',2585.21,331.10,193.40,76928.94,2876],
+  ['对照组','团员','10分位',  9.30,  9.14,  2.95, 14.13,  142],
+  ['对照组','团员','20分位', 18.99, 18.66, 14.14, 24.49,  142],
+  ['对照组','团员','30分位', 30.55, 30.37, 24.59, 36.86,  142],
+  ['对照组','团员','40分位', 45.33, 45.36, 36.88, 54.21,  142],
+  ['对照组','团员','50分位', 66.33, 64.78, 54.24, 80.89,  141],
+  ['对照组','团员','60分位', 99.98, 97.54, 81.10,126.25,  141],
+  ['对照组','团员','70分位',160.58,158.69,126.67,203.06,  141],
+  ['对照组','团员','80分位',270.41,261.53,203.71,369.67,  141],
+  ['对照组','团员','90分位',565.52,510.01,373.19,1020.82, 141],
+  ['对照组','团员','100分位',9270.32,3270.32,1022.15,69560.68,141],
+  ['对照组','团长','10分位',  7.02,  6.90,  1.42, 10.30, 8576],
+  ['对照组','团长','20分位', 13.61, 13.60, 10.30, 16.89, 8576],
+  ['对照组','团长','30分位', 20.15, 20.11, 16.89, 23.58, 8576],
+  ['对照组','团长','40分位', 27.40, 27.31, 23.58, 31.65, 8576],
+  ['对照组','团长','50分位', 36.73, 36.56, 31.65, 42.36, 8576],
+  ['对照组','团长','60分位', 49.44, 49.27, 42.36, 57.33, 8576],
+  ['对照组','团长','70分位', 67.49, 67.12, 57.34, 78.94, 8576],
+  ['对照组','团长','80分位', 95.43, 94.38, 78.94,116.06, 8576],
+  ['对照组','团长','90分位',153.06,149.48,116.06,206.04, 8576],
+  ['对照组','团长','100分位',2880.36,376.09,206.09,80405.40,8576],
+];
+
+// ── Build Table ──
+const expLdr = raw.filter(r=>r[0]==='实验组'&&r[1]==='团长');
+const ctrlLdr= raw.filter(r=>r[0]==='对照组'&&r[1]==='团长');
+const ctrlMbr= raw.filter(r=>r[0]==='对照组'&&r[1]==='团员');
+
+const ctrlLdrMap = {};
+ctrlLdr.forEach(r=>{ ctrlLdrMap[r[2]] = r[4]; });
+
+const tbody = document.getElementById('data-table');
+// sort: 实验组团长, 对照组团长, 对照组团员
+const sorted = [...expLdr, ...ctrlLdr, ...ctrlMbr];
+sorted.forEach(r=>{
+  const [grp, role, decile, avg, med, mn, mx, cnt] = r;
+  let delta = '—';
+  let cls = 'delta-neu';
+  if(grp==='实验组' && role==='团长' && ctrlLdrMap[decile] !== undefined) {
+    const d = ((med - ctrlLdrMap[decile]) / ctrlLdrMap[decile] * 100).toFixed(1);
+    delta = (d>0?'+':'')+d+'%';
+    cls = d>0?'delta-pos':'delta-neg';
+  }
+  const badgeCls = grp==='实验组'?'badge-exp':(role==='团员'?'badge-mbr':'badge-ctrl');
+  tbody.innerHTML += `<tr>
+    <td class="label"><span class="${badgeCls}">${grp}</span></td>
+    <td class="label">${role}</td>
+    <td class="label">${decile}</td>
+    <td class="num">${avg.toFixed(2)}</td>
+    <td class="num">${med.toFixed(2)}</td>
+    <td class="num">${mn.toFixed(2)}</td>
+    <td class="num">${mx.toFixed(2)}</td>
+    <td class="num">${cnt.toLocaleString()}</td>
+    <td class="num"><span class="${cls}">${delta}</span></td>
+  </tr>`;
+});
+
+// ── Chart 1: Line P10-P90 ──
+const xLabels = ['P10','P20','P30','P40','P50','P60','P70','P80','P90'];
+const expLdrMed = expLdr.slice(0,9).map(r=>r[4]);
+const ctrlLdrMed= ctrlLdr.slice(0,9).map(r=>r[4]);
+const ctrlMbrMed= ctrlMbr.slice(0,9).map(r=>r[4]);
+
+const c1 = echarts.init(document.getElementById('chart-line'));
+c1.setOption({
+  grid:{ top:20, bottom:48, left:60, right:30 },
+  tooltip:{ trigger:'axis', formatter: p=>{
+    let s=`<b>${p[0].axisValue}</b><br>`;
+    p.forEach(i=>{ s+=`${i.marker}${i.seriesName}：<b>${i.value}s</b><br>`; });
+    return s;
+  }},
+  legend:{ show:false },
+  xAxis:{ type:'category', data:xLabels, axisLine:{lineStyle:{color:'#e0e4ee'}}, axisTick:{show:false}, axisLabel:{color:'#8898bb'} },
+  yAxis:{ type:'value', axisLabel:{formatter:v=>v+'s',color:'#8898bb'}, splitLine:{lineStyle:{color:'#f0f2f8'}} },
+  series:[
+    { name:'实验组·团长', type:'line', data:expLdrMed, smooth:true,
+      lineStyle:{color:'#00b578',width:3}, itemStyle:{color:'#00b578'},
+      symbol:'circle', symbolSize:7,
+      areaStyle:{color:{type:'linear',x:0,y:0,x2:0,y2:1,colorStops:[{offset:0,color:'rgba(0,181,120,.20)'},{offset:1,color:'rgba(0,181,120,.02)'}]}} },
+    { name:'对照组·团长', type:'line', data:ctrlLdrMed, smooth:true,
+      lineStyle:{color:'#3b6ff5',width:3}, itemStyle:{color:'#3b6ff5'},
+      symbol:'circle', symbolSize:7,
+      areaStyle:{color:{type:'linear',x:0,y:0,x2:0,y2:1,colorStops:[{offset:0,color:'rgba(59,111,245,.15)'},{offset:1,color:'rgba(59,111,245,.01)'}]}} },
+    { name:'对照组·团员', type:'line', data:ctrlMbrMed, smooth:true,
+      lineStyle:{color:'#f59e0b',width:2,type:'dashed'}, itemStyle:{color:'#f59e0b'},
+      symbol:'circle', symbolSize:6 },
+  ]
+});
+
+// ── Chart 2: Diff bar ──
+const diffData = expLdr.slice(0,9).map((r,i)=>{
+  const d = ((r[4] - ctrlLdrMed[i]) / ctrlLdrMed[i] * 100);
+  return +d.toFixed(2);
+});
+const c2 = echarts.init(document.getElementById('chart-diff'));
+c2.setOption({
+  grid:{ top:20, bottom:48, left:60, right:30 },
+  tooltip:{ trigger:'axis', formatter: p=>`${p[0].axisValue}<br>${p[0].marker} 差异率：<b>${p[0].value>0?'+':''}${p[0].value}%</b>` },
+  xAxis:{ type:'category', data:xLabels, axisLine:{lineStyle:{color:'#e0e4ee'}}, axisTick:{show:false}, axisLabel:{color:'#8898bb'} },
+  yAxis:{ type:'value', axisLabel:{formatter:v=>v+'%',color:'#8898bb'}, splitLine:{lineStyle:{color:'#f0f2f8'}},
+    markLine:{ data:[{yAxis:0}] } },
+  series:[{
+    name:'中位数差异率', type:'bar', data:diffData.map(v=>({
+      value:v,
+      itemStyle:{color: v>0?'rgba(239,68,68,.7)':'rgba(0,181,120,.7)'}
+    })),
+    barMaxWidth:36,
+    label:{ show:true, position: v=>v.data.value>=0?'top':'bottom', formatter:p=>(p.value>0?'+':'')+p.value+'%', fontSize:11, color:'#5a6478' }
+  }]
+});
+
+// ── Chart 3: Role comparison (log) ──
+const c3 = echarts.init(document.getElementById('chart-role'));
+const xAll = ['P10','P20','P30','P40','P50','P60','P70','P80','P90','P100'];
+c3.setOption({
+  grid:{ top:20, bottom:48, left:72, right:30 },
+  tooltip:{ trigger:'axis', formatter: p=>{
+    let s=`<b>${p[0].axisValue}</b><br>`;
+    p.forEach(i=>{ s+=`${i.marker}${i.seriesName}：<b>${i.value}s</b><br>`; });
+    return s;
+  }},
+  xAxis:{ type:'category', data:xAll, axisLine:{lineStyle:{color:'#e0e4ee'}}, axisTick:{show:false}, axisLabel:{color:'#8898bb'} },
+  yAxis:{ type:'log', min:1, axisLabel:{formatter:v=>v+'s',color:'#8898bb'}, splitLine:{lineStyle:{color:'#f0f2f8'}} },
+  series:[
+    { name:'对照组·团长', type:'bar', data:ctrlLdr.map(r=>r[4]), barMaxWidth:28,
+      itemStyle:{color:'rgba(59,111,245,.75)'}, emphasis:{itemStyle:{color:'#3b6ff5'}},
+      label:{ show:false } },
+    { name:'对照组·团员', type:'bar', data:ctrlMbr.map(r=>r[4]), barMaxWidth:28,
+      itemStyle:{color:'rgba(245,158,11,.75)'}, emphasis:{itemStyle:{color:'#f59e0b'}},
+      label:{ show:false } },
+  ]
+});
+
+// ── Chart 4: Ratio bar ──
+const ratioData = ctrlMbr.map((r,i)=>+(r[4]/ctrlLdr[i][4]).toFixed(2));
+const c4 = echarts.init(document.getElementById('chart-ratio'));
+c4.setOption({
+  grid:{ top:20, bottom:48, left:60, right:30 },
+  tooltip:{ trigger:'axis', formatter: p=>`${p[0].axisValue}<br>${p[0].marker} 倍率：<b>${p[0].value}x</b>` },
+  xAxis:{ type:'category', data:xAll, axisLine:{lineStyle:{color:'#e0e4ee'}}, axisTick:{show:false}, axisLabel:{color:'#8898bb'} },
+  yAxis:{ type:'value', axisLabel:{formatter:v=>v+'x',color:'#8898bb'}, splitLine:{lineStyle:{color:'#f0f2f8'}} },
+  series:[{
+    name:'团员/团长倍率', type:'bar', data:ratioData.map(v=>({
+      value:v,
+      itemStyle:{color: v>=5?'rgba(239,68,68,.8)': v>=2?'rgba(245,158,11,.75)':'rgba(59,111,245,.7)'}
+    })),
+    barMaxWidth:36,
+    label:{ show:true, position:'top', formatter:p=>p.value+'x', fontSize:11, color:'#5a6478' }
+  }]
+});
+
+// responsive
+window.addEventListener('resize',()=>[c1,c2,c3,c4].forEach(c=>c.resize()));
+</script>
+</body>
+</html>
