@@ -1,0 +1,1406 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Write-SQL Skill · 拼团AB实验时间间隔分析 · 完整对话演示</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark-dimmed.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <style>
+    :root {
+      --ink:       #0b0e17;
+      --ink2:      #0f1320;
+      --ink3:      #161b29;
+      --ink4:      #1c2235;
+      --line:      #232c42;
+      --line2:     #2e3a56;
+      --smoke:     #8898bb;
+      --mist:      #4e5f80;
+      --snow:      #e8edf8;
+      --accent:    #00e5a0;
+      --accent2:   #5b6fff;
+      --amber:     #ffb930;
+      --rose:      #ff5f7e;
+      --acc-dim:   rgba(0,229,160,.12);
+      --acc-bdr:   rgba(0,229,160,.30);
+      --blu-dim:   rgba(91,111,255,.12);
+      --blu-bdr:   rgba(91,111,255,.28);
+      --amb-dim:   rgba(255,185,48,.10);
+      --amb-bdr:   rgba(255,185,48,.28);
+      --ros-dim:   rgba(255,95,126,.10);
+      --ros-bdr:   rgba(255,95,126,.28);
+      --sans:    'DM Sans', sans-serif;
+      --display: 'Syne', sans-serif;
+      --mono:    'DM Mono', monospace;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body { background: var(--ink); color: var(--snow); font-family: var(--sans); font-size: 14px; line-height: 1.65; overflow-x: hidden; }
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: var(--ink); }
+    ::-webkit-scrollbar-thumb { background: var(--line2); border-radius: 2px; }
+
+    /* ── TOPBAR ── */
+    .topbar { position: sticky; top: 0; z-index: 100; display: flex; align-items: center; justify-content: space-between; padding: 0 32px; height: 52px; background: rgba(11,14,23,.88); backdrop-filter: blur(16px); border-bottom: 1px solid var(--line); }
+    .topbar-logo { font-family: var(--display); font-size: 14px; font-weight: 700; letter-spacing: .04em; color: #fff; display: flex; align-items: center; gap: 10px; }
+    .topbar-logo .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); animation: pulse 2s ease-in-out infinite; }
+    @keyframes pulse { 0%,100%{box-shadow:0 0 0 0 rgba(0,229,160,.6)} 50%{box-shadow:0 0 0 6px rgba(0,229,160,0)} }
+    .topbar-tags { display: flex; align-items: center; gap: 8px; }
+    .ttag { font-family: var(--mono); font-size: 10px; padding: 3px 10px; border-radius: 20px; border: 1px solid; letter-spacing: .05em; }
+    .ttag-g { background: var(--acc-dim); border-color: var(--acc-bdr); color: var(--accent); }
+    .ttag-b { background: var(--blu-dim); border-color: var(--blu-bdr); color: var(--accent2); }
+    .ttag-a { background: var(--amb-dim); border-color: var(--amb-bdr); color: var(--amber); }
+
+    /* ── HERO ── */
+    .hero { position: relative; overflow: hidden; padding: 88px 0 72px; text-align: center; }
+    .hero-grid { position: absolute; inset: 0; background-image: linear-gradient(rgba(91,111,255,.07) 1px, transparent 1px), linear-gradient(90deg, rgba(91,111,255,.07) 1px, transparent 1px); background-size: 48px 48px; animation: gridshift 20s linear infinite; }
+    @keyframes gridshift { 0%{background-position:0 0} 100%{background-position:48px 48px} }
+    .hero-orb { position: absolute; width: 620px; height: 400px; top: -100px; left: 50%; transform: translateX(-50%); background: radial-gradient(ellipse, rgba(0,229,160,.10) 0%, rgba(91,111,255,.08) 45%, transparent 70%); animation: orb 7s ease-in-out infinite; pointer-events: none; }
+    @keyframes orb { 0%,100%{transform:translateX(-50%) scale(1)} 50%{transform:translateX(-50%) scale(1.08)} }
+    .hero-badge { position: relative; display: inline-flex; align-items: center; gap: 8px; font-family: var(--mono); font-size: 11px; letter-spacing: .08em; padding: 5px 16px; border: 1px solid var(--acc-bdr); background: var(--acc-dim); border-radius: 20px; color: var(--accent); margin-bottom: 28px; }
+    .live-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); animation: blink 1.6s ease-in-out infinite; }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.2} }
+    .hero-title { position: relative; font-family: var(--display); font-size: clamp(34px, 5vw, 62px); font-weight: 800; line-height: 1.08; letter-spacing: -.025em; color: #fff; margin-bottom: 20px; }
+    .hero-title .hl-teal { color: var(--accent); }
+    .hero-title .hl-blue { color: var(--accent2); }
+    .hero-sub { position: relative; font-size: 15px; font-weight: 300; color: var(--smoke); max-width: 540px; margin: 0 auto 40px; line-height: 1.8; }
+    .hero-pills { position: relative; display: flex; justify-content: center; flex-wrap: wrap; gap: 10px; }
+    .hpill { display: inline-flex; align-items: center; gap: 7px; padding: 8px 18px; border-radius: 8px; font-size: 12.5px; font-weight: 500; border: 1px solid; }
+    .hp-g { background: var(--acc-dim); border-color: var(--acc-bdr); color: var(--accent); }
+    .hp-b { background: var(--blu-dim); border-color: var(--blu-bdr); color: var(--accent2); }
+    .hp-a { background: var(--amb-dim); border-color: var(--amb-bdr); color: var(--amber); }
+    .hp-r { background: var(--ros-dim); border-color: var(--ros-bdr); color: var(--rose); }
+
+    /* ── LAYOUT ── */
+    .wrap { max-width: 960px; margin: 0 auto; padding: 0 28px 120px; }
+    .divider { display: flex; align-items: center; gap: 16px; margin: 56px 0 32px; }
+    .divider-line { flex: 1; height: 1px; background: var(--line); }
+    .divider-label { font-family: var(--mono); font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: var(--mist); white-space: nowrap; padding: 4px 14px; border: 1px solid var(--line); border-radius: 20px; }
+
+    /* ── CHAT ── */
+    .chat { display: flex; flex-direction: column; gap: 0; }
+    .turn { margin-bottom: 42px; }
+    .msg-user { display: flex; flex-direction: row-reverse; align-items: flex-start; gap: 12px; margin-bottom: 8px; }
+    .av { width: 34px; height: 34px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; }
+    .av-u { background: var(--blu-dim); border: 1.5px solid var(--blu-bdr); color: var(--accent2); font-size: 11px; font-family: var(--mono); }
+    .av-ai { background: var(--acc-dim); border: 1.5px solid var(--acc-bdr); color: var(--accent); font-size: 12px; }
+    .bubble-u { max-width: 72%; background: var(--blu-dim); border: 1px solid var(--blu-bdr); border-radius: 14px 3px 14px 14px; padding: 13px 18px; font-size: 14px; color: #fff; line-height: 1.65; }
+    .bubble-u strong { color: var(--accent); }
+    .msg-ai { display: flex; align-items: flex-start; gap: 12px; margin-left: 8px; }
+    .ai-body { flex: 1; min-width: 0; }
+    .ai-header { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+    .ai-name { font-family: var(--mono); font-size: 11px; color: var(--accent); letter-spacing: .04em; }
+    .ai-step-tag { font-family: var(--mono); font-size: 9.5px; padding: 2px 9px; border-radius: 10px; background: var(--ink3); border: 1px solid var(--line); color: var(--mist); letter-spacing: .04em; }
+
+    /* ── CARDS ── */
+    .card { background: var(--ink2); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; margin-bottom: 10px; transition: border-color .25s, box-shadow .25s; }
+    .card:hover { border-color: var(--line2); box-shadow: 0 4px 32px rgba(0,0,0,.4); }
+    .card-head { display: flex; align-items: center; gap: 14px; padding: 15px 20px; cursor: pointer; user-select: none; }
+    .card-icon { width: 34px; height: 34px; border-radius: 9px; display: flex; align-items: center; justify-content: center; font-size: 15px; flex-shrink: 0; }
+    .ci-teal { background: var(--acc-dim); border: 1px solid var(--acc-bdr); }
+    .ci-blue { background: var(--blu-dim); border: 1px solid var(--blu-bdr); }
+    .ci-amb  { background: var(--amb-dim); border: 1px solid var(--amb-bdr); }
+    .ci-rose { background: var(--ros-dim); border: 1px solid var(--ros-bdr); }
+    .card-titles { flex: 1; }
+    .card-titles h4 { font-size: 13.5px; font-weight: 600; color: #fff; margin-bottom: 1px; }
+    .card-titles p  { font-size: 11.5px; color: var(--smoke); font-weight: 300; }
+    .card-badge { font-family: var(--mono); font-size: 10px; padding: 3px 10px; border-radius: 6px; border: 1px solid; white-space: nowrap; }
+    .cb-ok   { background: var(--acc-dim); color: var(--accent); border-color: var(--acc-bdr); }
+    .cb-info { background: var(--blu-dim); color: var(--accent2); border-color: var(--blu-bdr); }
+    .cb-warn { background: var(--amb-dim); color: var(--amber);   border-color: var(--amb-bdr); }
+    .chevron { color: var(--mist); font-size: 11px; transition: transform .25s; margin-left: 4px; }
+    .card.open .chevron { transform: rotate(90deg); }
+    .card-body { border-top: 1px solid var(--line); padding: 18px 20px; display: none; }
+    .card.open .card-body { display: block; }
+
+    /* ── DATA GRID ── */
+    .dgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; margin-bottom: 14px; }
+    .dcell { background: var(--ink); border: 1px solid var(--line); border-radius: 9px; padding: 10px 14px; }
+    .dcell-k { font-family: var(--mono); font-size: 9px; letter-spacing: .12em; text-transform: uppercase; color: var(--mist); margin-bottom: 5px; }
+    .dcell-v { font-family: var(--mono); font-size: 13px; color: var(--snow); }
+    .dv-g { color: var(--accent); }
+    .dv-b { color: var(--accent2); }
+    .dv-a { color: var(--amber); }
+    .dv-r { color: var(--rose); }
+
+    /* ── PROSE + CODE ── */
+    .prose { font-size: 13px; color: var(--smoke); line-height: 1.8; }
+    .prose strong { color: var(--snow); font-weight: 500; }
+    code { font-family: var(--mono); font-size: 11.5px; background: var(--ink3); padding: 2px 6px; border-radius: 4px; color: var(--amber); }
+
+    /* ── FILE LIST ── */
+    .flist { display: flex; flex-direction: column; gap: 7px; margin-bottom: 14px; }
+    .fitem { display: flex; align-items: center; gap: 10px; padding: 9px 14px; background: var(--ink); border: 1px solid var(--line); border-radius: 8px; font-size: 12.5px; transition: border-color .2s; }
+    .fitem:hover { border-color: var(--line2); }
+    .fitem-name { font-family: var(--mono); font-size: 11.5px; color: var(--accent2); flex: 1; }
+    .fitem-desc { font-size: 11px; color: var(--smoke); }
+    .fitem-ok { color: var(--accent); font-size: 13px; }
+
+    /* ── EXP GROUPS ── */
+    .exp-groups { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 12px 0; }
+    .eg { padding: 14px 16px; border-radius: 10px; border: 1px solid; }
+    .eg-exp { background: var(--acc-dim); border-color: var(--acc-bdr); }
+    .eg-ctrl { background: var(--blu-dim); border-color: var(--blu-bdr); }
+    .eg-label { font-family: var(--mono); font-size: 10px; letter-spacing: .08em; text-transform: uppercase; margin-bottom: 8px; }
+    .eg-exp .eg-label { color: var(--accent); }
+    .eg-ctrl .eg-label { color: var(--accent2); }
+    .eg-cond { font-size: 12px; color: var(--snow); line-height: 1.7; }
+
+    /* ── SCHEMA ── */
+    .schema-cols { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0; }
+    .scol { font-family: var(--mono); font-size: 11px; padding: 4px 12px; border-radius: 6px; border: 1px solid var(--line); background: var(--ink3); color: var(--snow); }
+    .scol.key { border-color: var(--acc-bdr); color: var(--accent); background: var(--acc-dim); }
+    .scol.new { border-color: var(--ros-bdr); color: var(--rose); background: var(--ros-dim); }
+
+    /* ── THINK STRIP ── */
+    .think-strip { display: flex; align-items: center; gap: 10px; padding: 9px 14px; background: var(--ink3); border: 1px solid var(--line); border-radius: 8px; margin-bottom: 10px; font-size: 12px; color: var(--mist); }
+    .think-dots { display: flex; gap: 3px; }
+    .think-dots span { width: 4px; height: 4px; border-radius: 50%; background: var(--mist); animation: tdot 1.4s ease-in-out infinite; }
+    .think-dots span:nth-child(2) { animation-delay: .2s; }
+    .think-dots span:nth-child(3) { animation-delay: .4s; }
+    @keyframes tdot { 0%,100%{opacity:.3;transform:translateY(0)} 50%{opacity:1;transform:translateY(-2px)} }
+
+    /* ── VALIDATOR ── */
+    .vblock { background: var(--ink); border: 1px solid var(--line); border-radius: 9px; overflow: hidden; margin: 12px 0; }
+    .vhead { padding: 7px 14px; background: var(--ink3); border-bottom: 1px solid var(--line); font-family: var(--mono); font-size: 9.5px; color: var(--mist); letter-spacing: .05em; display: flex; align-items: center; justify-content: space-between; }
+    .vrow { display: flex; align-items: flex-start; gap: 12px; padding: 10px 14px; border-bottom: 1px solid var(--line); font-family: var(--mono); font-size: 11.5px; }
+    .vrow:last-child { border-bottom: none; }
+    .vtag { font-size: 9.5px; padding: 2px 8px; border-radius: 4px; flex-shrink: 0; margin-top: 1px; }
+    .vt-ok   { background: var(--acc-dim); color: var(--accent); }
+    .vt-warn { background: var(--amb-dim); color: var(--amber); }
+    .vt-skip { background: var(--ink3); color: var(--mist); }
+    .vmsg { color: var(--smoke); font-size: 11px; line-height: 1.6; }
+
+    /* ── SQL BOX ── */
+    .sql-wrap { margin-top: 14px; }
+    .sql-tabs { display: flex; gap: 3px; margin-bottom: -1px; position: relative; z-index: 1; }
+    .stab { padding: 7px 18px; background: var(--ink); border: 1px solid var(--line); border-bottom: none; border-radius: 8px 8px 0 0; font-family: var(--mono); font-size: 11.5px; color: var(--mist); cursor: pointer; transition: all .2s; }
+    .stab.on { background: var(--ink3); color: #fff; border-color: var(--line2); }
+    .spane { display: none; }
+    .spane.on { display: block; }
+    .codebox { background: #0c1020; border: 1px solid var(--line2); border-radius: 0 12px 12px 12px; overflow: hidden; }
+    .codebox-bar { display: flex; align-items: center; justify-content: space-between; padding: 8px 16px; background: #0e1422; border-bottom: 1px solid var(--line); }
+    .codebox-eng { font-family: var(--mono); font-size: 9.5px; color: var(--mist); letter-spacing: .05em; }
+    .copybtn { display: flex; align-items: center; gap: 5px; padding: 4px 12px; background: var(--ink3); border: 1px solid var(--line2); border-radius: 5px; font-size: 11px; font-family: var(--mono); color: var(--smoke); cursor: pointer; transition: all .2s; }
+    .copybtn:hover { background: var(--acc-dim); border-color: var(--acc-bdr); color: var(--accent); }
+    .copybtn.ok { background: var(--acc-dim); border-color: var(--acc-bdr); color: var(--accent); }
+    .codebox pre { margin: 0; padding: 20px 22px; overflow-x: auto; max-height: 560px; overflow-y: auto; }
+    .codebox pre code { font-family: var(--mono) !important; font-size: 11.5px !important; line-height: 1.68; background: transparent !important; padding: 0 !important; }
+
+    /* ── NOTES TABLE ── */
+    .ntable { width: 100%; border-collapse: collapse; font-size: 12.5px; margin-top: 14px; }
+    .ntable th { padding: 7px 12px; text-align: left; font-family: var(--mono); font-size: 9px; letter-spacing: .1em; text-transform: uppercase; color: var(--mist); background: var(--ink); border: 1px solid var(--line); }
+    .ntable td { padding: 9px 12px; border: 1px solid var(--line); color: var(--smoke); vertical-align: top; line-height: 1.65; }
+    .ntable td:first-child { font-family: var(--mono); font-size: 11px; color: var(--accent); white-space: nowrap; background: var(--ink); }
+    .ntable tr:hover td { background: var(--ink3); }
+
+    /* ── WARN BANNER ── */
+    .wbanner { display: flex; gap: 12px; padding: 13px 17px; background: var(--amb-dim); border: 1px solid var(--amb-bdr); border-radius: 10px; margin: 12px 0; }
+    .wbanner-icon { font-size: 17px; flex-shrink: 0; line-height: 1.5; }
+    .wbanner-ttl  { font-size: 12.5px; font-weight: 600; color: var(--amber); margin-bottom: 3px; }
+    .wbanner-body { font-size: 12px; color: var(--smoke); line-height: 1.65; }
+
+    /* ── DIFF STRIP ── */
+    .diff-strip { background: var(--ink3); border: 1px solid var(--line2); border-radius: 10px; padding: 14px 18px; margin: 12px 0; }
+    .diff-title { font-family: var(--mono); font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: var(--mist); margin-bottom: 10px; }
+    .diff-row { display: flex; align-items: center; gap: 8px; font-family: var(--mono); font-size: 11px; padding: 5px 0; border-bottom: 1px solid rgba(255,255,255,.04); }
+    .diff-row:last-child { border-bottom: none; }
+    .diff-loc { color: var(--mist); flex-shrink: 0; min-width: 90px; }
+    .diff-from { color: var(--rose); text-decoration: line-through; opacity: .7; }
+    .diff-arr  { color: var(--mist); padding: 0 4px; }
+    .diff-to   { color: var(--accent); }
+    .diff-compat { color: var(--accent); }
+
+    /* ── CONVERT STRIP ── */
+    .convert-strip { display: flex; align-items: center; gap: 14px; padding: 13px 18px; background: var(--ink3); border: 1px solid var(--line2); border-radius: 10px; margin: 12px 0; }
+    .convert-icon { width: 32px; height: 32px; border-radius: 8px; background: var(--blu-dim); border: 1px solid var(--blu-bdr); display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; }
+    .convert-txt strong { display: block; font-size: 13px; color: #fff; margin-bottom: 3px; }
+    .convert-txt span { font-size: 11.5px; color: var(--smoke); }
+
+    /* ── SUMMARY ── */
+    .sumgrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+    .sumcard { background: var(--ink2); border: 1px solid var(--line); border-radius: 12px; padding: 20px 20px 18px; position: relative; overflow: hidden; transition: transform .2s, border-color .2s; }
+    .sumcard:hover { transform: translateY(-2px); border-color: var(--line2); }
+    .sumcard::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; }
+    .sc-teal::before { background: var(--accent); }
+    .sc-blue::before { background: var(--accent2); }
+    .sc-amb::before  { background: var(--amber); }
+    .sc-rose::before { background: var(--rose); }
+    .sumcard-icon  { font-size: 22px; margin-bottom: 10px; }
+    .sumcard-title { font-size: 13px; font-weight: 600; color: #fff; margin-bottom: 6px; font-family: var(--display); }
+    .sumcard-desc  { font-size: 12px; color: var(--smoke); line-height: 1.7; }
+
+    /* ── INTRO CARD ── */
+    .intro-card { position: relative; background: linear-gradient(135deg, rgba(91,111,255,.10) 0%, rgba(0,229,160,.07) 100%); border: 1px solid rgba(91,111,255,.30); border-radius: 16px; padding: 26px 30px; overflow: hidden; margin-bottom: 8px; }
+    .intro-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px; background: linear-gradient(90deg, transparent, var(--accent2), var(--accent), transparent); opacity: .5; }
+    .intro-title { font-family: var(--display); font-size: 16px; font-weight: 700; color: #fff; margin-bottom: 6px; }
+    .intro-desc { font-size: 13px; color: var(--smoke); line-height: 1.75; }
+    .intro-chips { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 14px; }
+    .ichip { font-family: var(--mono); font-size: 11px; padding: 3px 10px; border-radius: 6px; border: 1px solid; }
+    .ic-g { background: var(--acc-dim); border-color: var(--acc-bdr); color: var(--accent); }
+    .ic-b { background: var(--blu-dim); border-color: var(--blu-bdr); color: var(--accent2); }
+    .ic-a { background: var(--amb-dim); border-color: var(--amb-bdr); color: var(--amber); }
+    .ic-r { background: var(--ros-dim); border-color: var(--ros-bdr); color: var(--rose); }
+
+    /* ── STEP BADGE ── */
+    .step-badge { display: inline-flex; align-items: center; gap: 8px; font-family: var(--mono); font-size: 10px; letter-spacing: .08em; padding: 4px 12px 4px 8px; border-radius: 20px; margin-bottom: 16px; }
+    .sb-1 { background: var(--blu-dim); border: 1px solid var(--blu-bdr); color: var(--accent2); }
+    .sb-2 { background: var(--acc-dim); border: 1px solid var(--acc-bdr); color: var(--accent); }
+    .sb-3 { background: var(--amb-dim); border: 1px solid var(--amb-bdr); color: var(--amber); }
+    .sb-4 { background: var(--ros-dim); border: 1px solid var(--ros-bdr); color: var(--rose); }
+    .sb-num { width: 18px; height: 18px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; background: rgba(255,255,255,.1); }
+
+    /* ── FADE IN ── */
+    .fi { opacity: 0; transform: translateY(18px); transition: opacity .45s ease, transform .45s ease; }
+    .fi.in { opacity: 1; transform: none; }
+
+    /* ── SELECTION BOX ── */
+    .select-box { background: var(--ink3); border: 1px solid var(--line2); border-left: 3px solid var(--accent2); border-radius: 10px; padding: 16px 20px; margin: 12px 0; }
+    .select-box-title { font-size: 13px; color: var(--snow); font-weight: 500; margin-bottom: 12px; }
+    .select-item { display: flex; align-items: flex-start; gap: 10px; padding: 9px 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--ink); margin-bottom: 7px; transition: border-color .2s; }
+    .select-item:hover { border-color: var(--line2); }
+    .select-item.active { background: var(--acc-dim); border-color: var(--acc-bdr); }
+    .select-num { font-family: var(--mono); font-size: 12px; font-weight: 600; padding: 1px 7px; border-radius: 5px; flex-shrink: 0; }
+    .select-item.active .select-num { background: var(--acc-bdr); color: var(--accent); }
+    .select-item:not(.active) .select-num { background: var(--line); color: var(--mist); }
+    .select-name { font-size: 13px; color: var(--snow); font-weight: 500; margin-bottom: 2px; }
+    .select-desc { font-size: 11.5px; color: var(--smoke); }
+
+    /* ── REQ HIGHLIGHT ── */
+    .req-box { background: linear-gradient(135deg, var(--blu-dim) 0%, var(--acc-dim) 100%); border: 1px solid var(--line2); border-left: 3px solid var(--accent2); border-radius: 10px; padding: 16px 20px; margin-bottom: 14px; }
+    .req-box-title { font-family: var(--mono); font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: var(--accent2); margin-bottom: 10px; }
+    .req-box p { font-size: 13px; color: var(--snow); line-height: 1.75; }
+
+    /* ── TABLE RESULT PREVIEW ── */
+    .result-preview { background: var(--ink); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; margin: 12px 0; }
+    .rp-head { padding: 8px 14px; background: var(--ink3); border-bottom: 1px solid var(--line); font-family: var(--mono); font-size: 9.5px; color: var(--mist); }
+    .rp-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    .rp-table th { padding: 8px 12px; background: var(--ink2); border: 1px solid var(--line); font-family: var(--mono); font-size: 10px; color: var(--accent); text-align: left; letter-spacing: .05em; }
+    .rp-table td { padding: 7px 12px; border: 1px solid var(--line); color: var(--smoke); font-family: var(--mono); font-size: 11px; }
+    .rp-table tr:nth-child(even) td { background: var(--ink2); }
+
+    footer { max-width: 960px; margin: 0 auto; padding: 28px 28px 48px; border-top: 1px solid var(--line); display: flex; align-items: center; justify-content: space-between; }
+    .foot-brand { font-family: var(--mono); font-size: 12px; color: var(--mist); }
+    .foot-brand em { color: var(--accent); font-style: normal; }
+    .foot-meta { font-family: var(--mono); font-size: 10.5px; color: var(--mist); text-align: right; line-height: 1.7; }
+  </style>
+</head>
+<body>
+
+<!-- ── TOPBAR ── -->
+<nav class="topbar">
+  <div class="topbar-logo">
+    <span class="dot"></span>
+    Write-SQL Skill &nbsp;·&nbsp; 裂变拉新业务线
+  </div>
+  <div class="topbar-tags">
+    <span class="ttag ttag-g">✓ 全程0 ERROR</span>
+    <span class="ttag ttag-b">Trino SQL</span>
+    <span class="ttag ttag-a">4 轮对话</span>
+  </div>
+</nav>
+
+<!-- ── HERO ── -->
+<section class="hero">
+  <div class="hero-grid"></div>
+  <div class="hero-orb"></div>
+  <div class="hero-badge">
+    <span class="live-dot"></span>
+    Write-SQL Skill &nbsp;·&nbsp; 完整对话演示
+  </div>
+  <h1 class="hero-title">
+    <span class="hl-blue">拼团AB实验</span><br>
+    首屏→立即购 <span class="hl-teal">时间间隔</span> 分析
+  </h1>
+  <p class="hero-sub">
+    从业务线选择到跨日汇总，4 轮自然语言对话<br>
+    全自动生成规范 Trino SQL，校验 0 错误
+  </p>
+  <div class="hero-pills">
+    <span class="hpill hp-b">📋 业务线自动匹配</span>
+    <span class="hpill hp-g">📂 8份资料自动加载</span>
+    <span class="hpill hp-a">🔍 选表强制验证</span>
+    <span class="hpill hp-r">♻️ 3轮迭代修改</span>
+  </div>
+</section>
+
+<!-- ── MAIN ── -->
+<div class="wrap">
+
+  <!-- INTRO -->
+  <div class="intro-card fi">
+    <div class="intro-title">🎯 这个演示在讲什么？</div>
+    <div class="intro-desc">
+      数据分析师想分析拼团游戏AB实验中用户从<strong style="color:#fff">首屏曝光到立即购买</strong>的行为路径耗时分布。
+      从输入业务线开始，经过 4 轮自然语言对话，AI 全程自动完成需求解析 → 资料加载 → SQL 生成 → 校验 → 方言转换 → 迭代修改，最终产出可直接在 Trino 执行的生产级 SQL。
+    </div>
+    <div class="intro-chips">
+      <span class="ichip ic-b">需求1：团长版 Hive SQL</span>
+      <span class="ichip ic-b">需求2：转换 Trino 格式</span>
+      <span class="ichip ic-g">需求3：增加团员维度</span>
+      <span class="ichip ic-a">需求4：跨日汇总版</span>
+      <span class="ichip ic-r">源表：dw.dw_tfc_elmt_eps_ug_di</span>
+    </div>
+  </div>
+
+  <div class="chat">
+
+  <!-- ═══════════════════════════════════
+       TURN 0: 业务线选择
+  ═══════════════════════════════════ -->
+  <div class="divider fi">
+    <div class="divider-line"></div>
+    <div class="divider-label">// 开始 · 业务线选择</div>
+    <div class="divider-line"></div>
+  </div>
+
+  <div class="turn fi">
+    <div class="msg-user">
+      <div class="av av-u">我</div>
+      <div class="bubble-u" style="font-family:var(--mono);font-size:13px;letter-spacing:.04em;">/shein-fission-sql</div>
+    </div>
+    <div class="msg-ai" style="margin-top:12px">
+      <div class="av av-ai">AI</div>
+      <div class="ai-body">
+        <div class="ai-header">
+          <span class="ai-name">Claude · Write-SQL Skill</span>
+          <span class="ai-step-tag">步骤0 · 业务线识别</span>
+        </div>
+        <div class="think-strip">
+          <div class="think-dots"><span></span><span></span><span></span></div>
+          读取 business_lines.yaml · 无具体需求描述 · 所有业务线得分 &lt; 50 · 触发选择界面
+        </div>
+        <div class="card open">
+          <div class="card-head" onclick="tog(this)">
+            <div class="card-icon ci-blue">📋</div>
+            <div class="card-titles">
+              <h4>业务线选择界面</h4>
+              <p>未命中自动匹配阈值（&lt;50分），展示标准化菜单</p>
+            </div>
+            <span class="card-badge cb-info">等待输入</span>
+            <span class="chevron">►</span>
+          </div>
+          <div class="card-body">
+            <div class="select-box">
+              <div class="select-box-title">📋 请选择你要查询的业务线：</div>
+              <div class="select-item active">
+                <span class="select-num">1</span>
+                <div><div class="select-name">裂变拉新业务线</div><div class="select-desc">用户增长中心裂变游戏、助力、分享、邀请相关分析</div></div>
+              </div>
+              <div class="select-item">
+                <span class="select-num">2</span>
+                <div><div class="select-name">新客转化业务线</div><div class="select-desc">全公司新用户注册、首单、留存、拉新成本相关分析</div></div>
+              </div>
+              <div class="select-item">
+                <span class="select-num">3</span>
+                <div><div class="select-name">商品上架业务线</div><div class="select-desc">商品中心上架、库存、SKU、SPU、品类相关分析</div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- user: 1 -->
+  <div class="turn fi" style="margin-bottom:12px">
+    <div class="msg-user">
+      <div class="av av-u">我</div>
+      <div class="bubble-u">1</div>
+    </div>
+    <div class="msg-ai" style="margin-top:10px">
+      <div class="av av-ai">AI</div>
+      <div class="ai-body">
+        <div style="display:flex;align-items:center;gap:10px;padding:11px 16px;background:var(--acc-dim);border:1px solid var(--acc-bdr);border-radius:10px;font-size:13px;">
+          <span style="font-size:16px">✅</span>
+          <span style="color:#fff">已选择业务线：<strong style="color:var(--accent)">裂变拉新业务线</strong> · 资料目录已就绪，请告诉我你的查询需求</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════
+       TURN 1: 原始需求
+  ═══════════════════════════════════ -->
+  <div class="divider fi">
+    <div class="divider-line"></div>
+    <div class="divider-label">// 需求一 · 团长时间间隔分位分析</div>
+    <div class="divider-line"></div>
+  </div>
+
+  <div class="turn fi">
+    <div class="msg-user">
+      <div class="av av-u">我</div>
+      <div class="bubble-u">
+        拼团游戏做了一个实验，想看实验组和对照组<strong>团长从首屏首次曝光到立即购页面首次曝光的间隔时间分布</strong>。<br><br>
+        事件属性都是 <code>expose_popup_selectattr</code>，<code>page_tp='2'</code><br><br>
+        实验组首屏：<code>popup_type='groupbuycountdown_begin'</code> 且 <code>groupbuycountdown IN('A','B')</code><br>
+        对照组首屏：<code>popup_type='groupbuyfreeshipping'</code><br>
+        立即购曝光：<code>popup_type='orderdrawer'</code>（两组共用）<br><br>
+        日期：5.26 到昨天。按<strong>每10分位分组</strong>，输出日期、实验组别、分位段、平均值、中位数、最小值、最大值、团长数
+      </div>
+    </div>
+
+    <div class="msg-ai" style="margin-top:14px">
+      <div class="av av-ai">AI</div>
+      <div class="ai-body">
+        <div class="ai-header">
+          <span class="ai-name">Claude · 处理中</span>
+          <span class="ai-step-tag">步骤1→6 · 完整流程</span>
+        </div>
+        <div class="think-strip">
+          <div class="think-dots"><span></span><span></span><span></span></div>
+          获取系统日期 20260603 · 昨天=20260602 · 范围 20260526~20260602
+        </div>
+
+        <!-- 资料加载 -->
+        <div class="card open">
+          <div class="card-head" onclick="tog(this)">
+            <div class="card-icon ci-blue">📂</div>
+            <div class="card-titles">
+              <h4>步骤2 · 资料加载（8份）</h4>
+              <p>公共规范 ×3 + 裂变拉新业务线专属 ×5</p>
+            </div>
+            <span class="card-badge cb-ok">✓ 全部加载</span>
+            <span class="chevron">►</span>
+          </div>
+          <div class="card-body">
+            <div class="flist">
+              <div class="fitem"><span>📘</span><span class="fitem-name">base/hive-sql-spec.md</span><span class="fitem-desc">订单父子结构规则 · 漏斗口径通用规则</span><span class="fitem-ok">✓</span></div>
+              <div class="fitem"><span>📘</span><span class="fitem-name">base/data-quality-rules.md</span><span class="fitem-desc">测试用户过滤 · is_valid · site_tp 过滤</span><span class="fitem-ok">✓</span></div>
+              <div class="fitem"><span>📘</span><span class="fitem-name">base/sql-performance-guide.md</span><span class="fitem-desc">大表在前 · 禁止全表扫描 · CTE 优先</span><span class="fitem-ok">✓</span></div>
+              <div class="fitem"><span>📗</span><span class="fitem-name">fission-game/metric-definitions.md</span><span class="fitem-desc">裂变游戏指标口径字典 · DAU/游戏UV/K值等</span><span class="fitem-ok">✓</span></div>
+              <div class="fitem"><span>📗</span><span class="fitem-name">fission-game/data-dictionary.md</span><span class="fitem-desc">命中表：<code>dw.dw_tfc_elmt_eps_ug_di</code>（用增专属 · 含page_tp/game_tp）</span><span class="fitem-ok">✓ 选表</span></div>
+              <div class="fitem"><span>📗</span><span class="fitem-name">fission-game/common-sql-templates.md</span><span class="fitem-desc">grep expose_popup_selectattr · 拼团(106)曝光模板复用</span><span class="fitem-ok">✓</span></div>
+              <div class="fitem"><span>📗</span><span class="fitem-name">fission-game/business-policy-log.md</span><span class="fitem-desc">查询时间范围内无拼团业务变更</span><span class="fitem-ok">✓</span></div>
+              <div class="fitem"><span>📗</span><span class="fitem-name">fission-game/examples/query-examples.md</span><span class="fitem-desc">未找到分位分析示例 · 从头构建</span><span class="fitem-ok">✓</span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 选表验证 -->
+        <div class="card open">
+          <div class="card-head" onclick="tog(this)">
+            <div class="card-icon ci-amb">🔍</div>
+            <div class="card-titles">
+              <h4>步骤4 · 选表强制验证</h4>
+              <p>用增专属(_ug_) + 天级(_di) 优先于通用小时级表</p>
+            </div>
+            <span class="card-badge cb-ok">✓ 裁决完成</span>
+            <span class="chevron">►</span>
+          </div>
+          <div class="card-body">
+            <div class="dgrid" style="grid-template-columns:repeat(2,1fr)">
+              <div class="dcell">
+                <div class="dcell-k">候选表1（选用）</div>
+                <div class="dcell-v dv-g" style="font-size:12px">dw_tfc_elmt_eps_ug_di</div>
+              </div>
+              <div class="dcell">
+                <div class="dcell-k">候选表2（放弃）</div>
+                <div class="dcell-v dv-r" style="font-size:12px">dw_tfc_elmt_eps_hi</div>
+              </div>
+            </div>
+            <div class="diff-strip">
+              <div class="diff-title">选表依据</div>
+              <div class="diff-row"><span class="diff-loc">专属性</span><span class="diff-from">通用流量表</span><span class="diff-arr">→</span><span class="diff-to">用增专属(_ug_)，优先级更高</span></div>
+              <div class="diff-row"><span class="diff-loc">粒度</span><span class="diff-from">小时级(_hi)</span><span class="diff-arr">→</span><span class="diff-to">天级(_di)，IO 更小</span></div>
+              <div class="diff-row"><span class="diff-loc">page_tp 字段</span><span class="diff-from">不含该字段</span><span class="diff-arr">→</span><span class="diff-to">含 page_tp · 用户明确指定 page_tp='2'</span></div>
+              <div class="diff-row"><span class="diff-loc">team 字段</span><span class="diff-compat">✓ 含 page_param.groupid · 团长识别有据</span></div>
+            </div>
+            <div class="prose" style="margin-top:8px">
+              <strong>团长识别口径（数据字典规范）</strong>：<code>COALESCE(JSON_EXTRACT_SCALAR(page_param,'$.groupid'),'') = ''</code>
+              — groupid 为空字符串代表自己开团，即团长
+            </div>
+          </div>
+        </div>
+
+        <!-- 需求解析 -->
+        <div class="card open">
+          <div class="card-head" onclick="tog(this)">
+            <div class="card-icon ci-teal">📐</div>
+            <div class="card-titles">
+              <h4>步骤3 · 需求解析 & SQL 设计</h4>
+              <p>5个CTE · NTILE(10)分位 · 13位毫秒戳÷1000→秒</p>
+            </div>
+            <span class="card-badge cb-info">逻辑确认</span>
+            <span class="chevron">►</span>
+          </div>
+          <div class="card-body">
+            <div class="exp-groups">
+              <div class="eg eg-exp">
+                <div class="eg-label">实验组</div>
+                <div class="eg-cond">
+                  <code>popup_type='groupbuycountdown_begin'</code><br>
+                  + <code>groupbuycountdown IN ('A','B')</code><br>
+                  倒计时实验版本
+                </div>
+              </div>
+              <div class="eg eg-ctrl">
+                <div class="eg-label">对照组</div>
+                <div class="eg-cond">
+                  <code>popup_type='groupbuyfreeshipping'</code><br>
+                  免邮奖励版本<br>&nbsp;
+                </div>
+              </div>
+            </div>
+            <div class="prose">
+              <strong>立即购（共用）</strong>：<code>popup_type='orderdrawer'</code><br>
+              <strong>时间间隔</strong>：<code>(MIN立即购ts - 首屏首次ts) / 1000</code> 秒，立即购ts必须 &gt; 首屏ts<br>
+              <strong>NTILE(10)</strong>：PARTITION BY dt, exp_group 对每日每组独立升序分桶，bucket1=最快10%
+            </div>
+            <div style="margin-top:12px">
+              <div style="font-family:var(--mono);font-size:9.5px;color:var(--mist);letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px">输出字段</div>
+              <div class="schema-cols">
+                <span class="scol key">dt</span>
+                <span class="scol key">exp_group</span>
+                <span class="scol">percentile_group</span>
+                <span class="scol">avg_interval_sec</span>
+                <span class="scol">median_interval_sec</span>
+                <span class="scol">min_interval_sec</span>
+                <span class="scol">max_interval_sec</span>
+                <span class="scol">captain_cnt</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- SQL + 校验 -->
+        <div class="card open">
+          <div class="card-head" onclick="tog(this)">
+            <div class="card-icon ci-teal">⚡</div>
+            <div class="card-titles">
+              <h4>步骤5 · SQL 生成 & 自动校验</h4>
+              <p>Hive SQL · 6个CTE · sql-validator.py V3.1 通过</p>
+            </div>
+            <span class="card-badge cb-ok">✓ 校验通过</span>
+            <span class="chevron">►</span>
+          </div>
+          <div class="card-body">
+            <div class="vblock">
+              <div class="vhead"><span>sql-validator.py V3.1 · /tmp/temp-sql.sql</span></div>
+              <div class="vrow"><span class="vtag vt-warn">WARN</span><span class="vmsg">建议过滤测试用户 dim.dim_test_users → 该表未收录数据字典，<strong style="color:var(--amber)">跳过此WARN，不修改SQL</strong></span></div>
+              <div class="vrow" style="background:rgba(0,229,160,.03)"><span class="vtag vt-ok">PASS</span><span class="vmsg">无 ERROR · 允许输出</span></div>
+            </div>
+            <div class="sql-wrap">
+              <div class="sql-tabs">
+                <button class="stab on" onclick="stab(this,'c1-hive')">🌿 Hive SQL</button>
+              </div>
+              <div class="spane on" id="pane-c1-hive">
+                <div class="codebox">
+                  <div class="codebox-bar">
+                    <span class="codebox-eng">ENGINE: Hive · 数据范围 20260526~20260602 · 按日×组分位</span>
+                    <button class="copybtn" onclick="cp('c1h',this)">📋 复制</button>
+                  </div>
+                  <pre><code id="c1h" class="language-sql">WITH
+-- 步骤1a：实验组团长首屏首次曝光
+exp_first_screen AS (
+    SELECT
+        dt,
+        CAST(member_id AS STRING)                    AS member_id,
+        '实验组'                                      AS exp_group,
+        MIN(log_timestamp)                            AS first_screen_ts
+    FROM dw.dw_tfc_elmt_eps_ug_di
+    WHERE dt BETWEEN '20260526' AND '20260602'
+      AND p_game_tp = '106'
+      AND site_tp   = 'shein'
+      AND game_tp   = 106
+      AND page_tp   = '2'
+      AND event_nm  = 'expose_popup_selectattr'
+      AND get_json_object(activity_param,'$.popup_type')       = 'groupbuycountdown_begin'
+      AND get_json_object(activity_param,'$.groupbuycountdown') IN ('A','B')
+      AND COALESCE(get_json_object(page_param,'$.groupid'),'') = ''  -- 团长
+      AND member_id IS NOT NULL AND member_id > 0
+    GROUP BY dt, CAST(member_id AS STRING)
+),
+-- 步骤1b：对照组团长首屏首次曝光
+ctrl_first_screen AS (
+    SELECT dt, CAST(member_id AS STRING) AS member_id,
+           '对照组' AS exp_group, MIN(log_timestamp) AS first_screen_ts
+    FROM dw.dw_tfc_elmt_eps_ug_di
+    WHERE dt BETWEEN '20260526' AND '20260602'
+      AND p_game_tp='106' AND site_tp='shein' AND game_tp=106 AND page_tp='2'
+      AND event_nm='expose_popup_selectattr'
+      AND get_json_object(activity_param,'$.popup_type')='groupbuyfreeshipping'
+      AND COALESCE(get_json_object(page_param,'$.groupid'),'')=''
+      AND member_id IS NOT NULL AND member_id > 0
+    GROUP BY dt, CAST(member_id AS STRING)
+),
+all_first_screen AS (
+    SELECT dt,member_id,exp_group,first_screen_ts FROM exp_first_screen
+    UNION ALL
+    SELECT dt,member_id,exp_group,first_screen_ts FROM ctrl_first_screen
+),
+-- 步骤2：立即购曝光明细
+orderdrawer_detail AS (
+    SELECT dt, CAST(member_id AS STRING) AS member_id, log_timestamp AS orderdrawer_ts
+    FROM dw.dw_tfc_elmt_eps_ug_di
+    WHERE dt BETWEEN '20260526' AND '20260602'
+      AND p_game_tp='106' AND site_tp='shein' AND game_tp=106 AND page_tp='2'
+      AND event_nm='expose_popup_selectattr'
+      AND get_json_object(activity_param,'$.popup_type')='orderdrawer'
+      AND COALESCE(get_json_object(page_param,'$.groupid'),'')=''
+      AND member_id IS NOT NULL AND member_id > 0
+),
+-- 步骤3：计算时间间隔（秒）
+user_interval AS (
+    SELECT f.dt, f.exp_group, f.member_id,
+           CAST(MIN(o.orderdrawer_ts)-f.first_screen_ts AS DOUBLE)/1000.0 AS interval_sec
+    FROM all_first_screen f
+    INNER JOIN orderdrawer_detail o
+        ON f.dt=o.dt AND f.member_id=o.member_id
+        AND o.orderdrawer_ts > f.first_screen_ts
+    GROUP BY f.dt,f.exp_group,f.member_id,f.first_screen_ts
+),
+-- 步骤4：NTILE(10) 按日×组分桶
+user_ntile AS (
+    SELECT dt,exp_group,member_id,interval_sec,
+           NTILE(10) OVER(PARTITION BY dt,exp_group ORDER BY interval_sec ASC) AS ntile_bucket
+    FROM user_interval
+)
+SELECT
+    dt, exp_group,
+    CONCAT(CAST(ntile_bucket*10 AS STRING),'分位')         AS percentile_group,
+    ROUND(AVG(interval_sec),2)                             AS avg_interval_sec,
+    ROUND(PERCENTILE_APPROX(interval_sec,0.5),2)           AS median_interval_sec,
+    ROUND(MIN(interval_sec),2)                             AS min_interval_sec,
+    ROUND(MAX(interval_sec),2)                             AS max_interval_sec,
+    COUNT(DISTINCT member_id)                              AS captain_cnt
+FROM user_ntile
+GROUP BY dt,exp_group,ntile_bucket
+ORDER BY dt,exp_group,ntile_bucket;</code></pre>
+                </div>
+              </div>
+            </div>
+            <div class="wbanner">
+              <span class="wbanner-icon">ℹ️</span>
+              <div>
+                <div class="wbanner-ttl">数据字典补充建议</div>
+                <div class="wbanner-body"><code>dim.dim_test_users</code> 未收录在当前业务线数据字典，测试用户过滤已跳过。建议联系 Jeff Zhong 补充后手动添加过滤条件。</div>
+              </div>
+            </div>
+
+            <!-- ★ 方言选择菜单（步骤7） -->
+            <div style="margin-top:18px;padding:16px 20px;background:var(--ink3);border:1px solid var(--line2);border-radius:12px;">
+              <div style="font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--mist);margin-bottom:12px;">🔧 步骤7 · SQL 执行引擎选择</div>
+              <div style="font-size:13px;color:var(--snow);margin-bottom:14px;">是否需要转换 SQL 执行引擎格式？</div>
+              <div style="display:flex;flex-direction:column;gap:7px;">
+                <div style="display:flex;align-items:center;gap:10px;padding:9px 14px;background:var(--ink);border:1px solid var(--line);border-radius:8px;">
+                  <span style="font-family:var(--mono);font-size:12px;color:var(--mist);font-weight:600;min-width:18px;">1</span>
+                  <span style="font-size:13px;color:var(--smoke);">不修改（保持 Hive 格式）</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:10px;padding:9px 14px;background:var(--ink);border:1px solid var(--line);border-radius:8px;">
+                  <span style="font-family:var(--mono);font-size:12px;color:var(--mist);font-weight:600;min-width:18px;">2</span>
+                  <span style="font-size:13px;color:var(--smoke);">转换为 Spark SQL</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:10px;padding:9px 14px;background:var(--acc-dim);border:1px solid var(--acc-bdr);border-radius:8px;">
+                  <span style="font-family:var(--mono);font-size:12px;color:var(--accent);font-weight:700;min-width:18px;">3</span>
+                  <span style="font-size:13px;color:#fff;font-weight:500;">转换为 Trino SQL</span>
+                  <span style="margin-left:auto;font-family:var(--mono);font-size:10px;padding:2px 8px;background:var(--acc-bdr);border-radius:4px;color:var(--accent);">用户已选择</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════
+       TURN 2: 转换 Trino
+  ═══════════════════════════════════ -->
+  <div class="divider fi">
+    <div class="divider-line"></div>
+    <div class="divider-label">// 需求二 · 转换 Trino SQL</div>
+    <div class="divider-line"></div>
+  </div>
+
+  <div class="turn fi">
+    <div class="msg-user">
+      <div class="av av-u">我</div>
+      <div class="bubble-u">3（转换为 Trino SQL）</div>
+    </div>
+    <div class="msg-ai" style="margin-top:14px">
+      <div class="av av-ai">AI</div>
+      <div class="ai-body">
+        <div class="ai-header">
+          <span class="ai-name">Claude · 方言转换</span>
+          <span class="ai-step-tag">步骤7 · Hive → Trino</span>
+        </div>
+        <div class="card open">
+          <div class="card-head" onclick="tog(this)">
+            <div class="card-icon ci-blue">⚡</div>
+            <div class="card-titles">
+              <h4>Hive → Trino 转换规则逐条执行</h4>
+              <p>加载 sql-dialect-rules.md · 3处语法变更 · 其余全部兼容</p>
+            </div>
+            <span class="card-badge cb-ok">✓ 3处变更</span>
+            <span class="chevron">►</span>
+          </div>
+          <div class="card-body">
+            <div class="diff-strip">
+              <div class="diff-title">语法变更清单</div>
+              <div class="diff-row">
+                <span class="diff-loc">类型转换</span>
+                <span class="diff-from">CAST(... AS STRING)</span>
+                <span class="diff-arr">→</span>
+                <span class="diff-to">CAST(... AS VARCHAR)</span>
+              </div>
+              <div class="diff-row">
+                <span class="diff-loc">JSON提取</span>
+                <span class="diff-from">GET_JSON_OBJECT(field,'$.key')</span>
+                <span class="diff-arr">→</span>
+                <span class="diff-to">JSON_EXTRACT_SCALAR(field,'$.key')</span>
+              </div>
+              <div class="diff-row">
+                <span class="diff-loc">近似中位数</span>
+                <span class="diff-from">PERCENTILE_APPROX(col,0.5)</span>
+                <span class="diff-arr">→</span>
+                <span class="diff-to">APPROX_PERCENTILE(col,0.5)</span>
+              </div>
+              <div class="diff-row">
+                <span class="diff-loc">CTE / NTILE / ROUND / COALESCE</span>
+                <span class="diff-compat">✓ 全部兼容，禁止改动</span>
+              </div>
+            </div>
+            <div class="vblock" style="margin-top:12px">
+              <div class="vhead"><span>sql-validator.py V3.1 · /tmp/temp-sql-converted.sql</span></div>
+              <div class="vrow"><span class="vtag vt-skip">SKIP</span><span class="vmsg">dim_test_users 未收录 · 跳过</span></div>
+              <div class="vrow" style="background:rgba(0,229,160,.03)"><span class="vtag vt-ok">PASS</span><span class="vmsg">转换版无 ERROR · 允许输出</span></div>
+            </div>
+
+            <!-- ★ 转换后完整 Trino SQL -->
+            <div class="sql-wrap" style="margin-top:14px;">
+              <div class="sql-tabs">
+                <button class="stab on" onclick="stab(this,'c2-trino')">⚡ Trino SQL（团长版 · 转换完成）</button>
+              </div>
+              <div class="spane on" id="pane-c2-trino">
+                <div class="codebox">
+                  <div class="codebox-bar">
+                    <span class="codebox-eng">ENGINE: Trino SQL · 数据范围 20260526~20260602 · 按日×组分位 · 仅团长</span>
+                    <button class="copybtn" onclick="cp('c2t',this)">📋 复制</button>
+                  </div>
+                  <pre><code id="c2t" class="language-sql">-- =============================================
+-- 需求：拼团游戏AB实验—团长首屏→立即购时间间隔分位分析
+-- 执行引擎：Trino SQL
+-- 数据范围：20260526 ~ 20260602
+-- 转换说明：CAST AS STRING→VARCHAR · GET_JSON_OBJECT→JSON_EXTRACT_SCALAR
+--           PERCENTILE_APPROX→APPROX_PERCENTILE · 其余语法兼容无变动
+-- =============================================
+WITH
+-- 步骤1a：实验组团长首屏首次曝光
+exp_first_screen AS (
+    SELECT
+        dt,
+        CAST(member_id AS VARCHAR)                                           AS member_id,
+        '实验组'                                                              AS exp_group,
+        MIN(log_timestamp)                                                    AS first_screen_ts
+    FROM dw.dw_tfc_elmt_eps_ug_di
+    WHERE dt BETWEEN '20260526' AND '20260602'
+      AND p_game_tp = '106'
+      AND site_tp   = 'shein'
+      AND game_tp   = 106
+      AND page_tp   = '2'
+      AND event_nm  = 'expose_popup_selectattr'
+      AND JSON_EXTRACT_SCALAR(activity_param, '$.popup_type')       = 'groupbuycountdown_begin'
+      AND JSON_EXTRACT_SCALAR(activity_param, '$.groupbuycountdown') IN ('A', 'B')
+      AND COALESCE(JSON_EXTRACT_SCALAR(page_param, '$.groupid'), '') = ''    -- 团长
+      AND member_id IS NOT NULL AND member_id > 0
+    GROUP BY dt, CAST(member_id AS VARCHAR)
+),
+-- 步骤1b：对照组团长首屏首次曝光
+ctrl_first_screen AS (
+    SELECT
+        dt, CAST(member_id AS VARCHAR) AS member_id,
+        '对照组' AS exp_group, MIN(log_timestamp) AS first_screen_ts
+    FROM dw.dw_tfc_elmt_eps_ug_di
+    WHERE dt BETWEEN '20260526' AND '20260602'
+      AND p_game_tp='106' AND site_tp='shein' AND game_tp=106 AND page_tp='2'
+      AND event_nm='expose_popup_selectattr'
+      AND JSON_EXTRACT_SCALAR(activity_param,'$.popup_type') = 'groupbuyfreeshipping'
+      AND COALESCE(JSON_EXTRACT_SCALAR(page_param,'$.groupid'),'') = ''
+      AND member_id IS NOT NULL AND member_id > 0
+    GROUP BY dt, CAST(member_id AS VARCHAR)
+),
+all_first_screen AS (
+    SELECT dt,member_id,exp_group,first_screen_ts FROM exp_first_screen
+    UNION ALL
+    SELECT dt,member_id,exp_group,first_screen_ts FROM ctrl_first_screen
+),
+-- 步骤2：立即购曝光明细（团长）
+orderdrawer_detail AS (
+    SELECT dt, CAST(member_id AS VARCHAR) AS member_id, log_timestamp AS orderdrawer_ts
+    FROM dw.dw_tfc_elmt_eps_ug_di
+    WHERE dt BETWEEN '20260526' AND '20260602'
+      AND p_game_tp='106' AND site_tp='shein' AND game_tp=106 AND page_tp='2'
+      AND event_nm='expose_popup_selectattr'
+      AND JSON_EXTRACT_SCALAR(activity_param,'$.popup_type') = 'orderdrawer'
+      AND COALESCE(JSON_EXTRACT_SCALAR(page_param,'$.groupid'),'') = ''
+      AND member_id IS NOT NULL AND member_id > 0
+),
+-- 步骤3：计算时间间隔（秒），立即购须晚于首屏
+user_interval AS (
+    SELECT f.dt, f.exp_group, f.member_id,
+           CAST(MIN(o.orderdrawer_ts)-f.first_screen_ts AS DOUBLE)/1000.0 AS interval_sec
+    FROM all_first_screen f
+    INNER JOIN orderdrawer_detail o
+        ON f.dt=o.dt AND f.member_id=o.member_id
+        AND o.orderdrawer_ts > f.first_screen_ts
+    GROUP BY f.dt,f.exp_group,f.member_id,f.first_screen_ts
+),
+-- 步骤4：NTILE(10) 按日×组升序分桶
+user_ntile AS (
+    SELECT dt,exp_group,member_id,interval_sec,
+           NTILE(10) OVER(PARTITION BY dt,exp_group ORDER BY interval_sec ASC) AS ntile_bucket
+    FROM user_interval
+)
+-- 步骤5：聚合输出
+SELECT
+    dt,
+    exp_group,
+    CONCAT(CAST(ntile_bucket*10 AS VARCHAR),'分位')          AS percentile_group,
+    ROUND(AVG(interval_sec),2)                               AS avg_interval_sec,
+    ROUND(APPROX_PERCENTILE(interval_sec,0.5),2)             AS median_interval_sec,
+    ROUND(MIN(interval_sec),2)                               AS min_interval_sec,
+    ROUND(MAX(interval_sec),2)                               AS max_interval_sec,
+    COUNT(DISTINCT member_id)                                AS captain_cnt
+FROM user_ntile
+GROUP BY dt,exp_group,ntile_bucket
+ORDER BY dt,exp_group,ntile_bucket;</code></pre>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════
+       TURN 3: 增加用户身份
+  ═══════════════════════════════════ -->
+  <div class="divider fi">
+    <div class="divider-line"></div>
+    <div class="divider-label">// 需求三 · 增加团员维度（用户身份字段）</div>
+    <div class="divider-line"></div>
+  </div>
+
+  <div class="turn fi">
+    <div class="msg-user">
+      <div class="av av-u">我</div>
+      <div class="bubble-u">
+        刚刚获取的是团长的数据，现在需要修改下需求，<strong>增加一个字段：用户身份（团长/团员）</strong>，其他不变
+      </div>
+    </div>
+    <div class="msg-ai" style="margin-top:14px">
+      <div class="av av-ai">AI</div>
+      <div class="ai-body">
+        <div class="ai-header">
+          <span class="ai-name">Claude · 迭代修改</span>
+          <span class="ai-step-tag">在 Trino 版本上直接修改</span>
+        </div>
+        <div class="think-strip">
+          <div class="think-dots"><span></span><span></span><span></span></div>
+          需求明确 · 直接推断 · 无需确认 · 6处改动点已识别
+        </div>
+        <div class="card open">
+          <div class="card-head" onclick="tog(this)">
+            <div class="card-icon ci-rose">🔧</div>
+            <div class="card-titles">
+              <h4>改动分析 · 6处精准修改</h4>
+              <p>移除团长过滤 · 新增CASE WHEN识别角色 · NTILE加user_role维度</p>
+            </div>
+            <span class="card-badge cb-info">精确改动</span>
+            <span class="chevron">►</span>
+          </div>
+          <div class="card-body">
+            <div class="diff-strip">
+              <div class="diff-title">改动清单</div>
+              <div class="diff-row">
+                <span class="diff-loc">步骤1a/1b WHERE</span>
+                <span class="diff-from">COALESCE(groupid,'')=''（团长过滤）</span>
+                <span class="diff-arr">→</span>
+                <span class="diff-to">移除，不再限制角色</span>
+              </div>
+              <div class="diff-row">
+                <span class="diff-loc">步骤1a/1b SELECT</span>
+                <span class="diff-from">无 user_role 字段</span>
+                <span class="diff-arr">→</span>
+                <span class="diff-to">新增 CASE WHEN groupid='' THEN '团长' ELSE '团员' END</span>
+              </div>
+              <div class="diff-row">
+                <span class="diff-loc">步骤2 立即购</span>
+                <span class="diff-from">无角色字段</span>
+                <span class="diff-arr">→</span>
+                <span class="diff-to">新增同样的 user_role CASE WHEN</span>
+              </div>
+              <div class="diff-row">
+                <span class="diff-loc">步骤3 JOIN条件</span>
+                <span class="diff-from">无角色配对</span>
+                <span class="diff-arr">→</span>
+                <span class="diff-to">AND f.user_role=o.user_role（防止跨角色错配）</span>
+              </div>
+              <div class="diff-row">
+                <span class="diff-loc">步骤4 NTILE</span>
+                <span class="diff-from">PARTITION BY dt,exp_group</span>
+                <span class="diff-arr">→</span>
+                <span class="diff-to">PARTITION BY dt,exp_group,<strong>user_role</strong>（各自独立分桶）</span>
+              </div>
+              <div class="diff-row">
+                <span class="diff-loc">步骤5 输出</span>
+                <span class="diff-from">captain_cnt</span>
+                <span class="diff-arr">→</span>
+                <span class="diff-to">新增 user_role 维度 · user_cnt</span>
+              </div>
+            </div>
+            <div style="margin-top:12px">
+              <div style="font-family:var(--mono);font-size:9.5px;color:var(--mist);letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px">更新后输出字段</div>
+              <div class="schema-cols">
+                <span class="scol key">dt</span>
+                <span class="scol key">exp_group</span>
+                <span class="scol new">user_role 🆕</span>
+                <span class="scol">percentile_group</span>
+                <span class="scol">avg_interval_sec</span>
+                <span class="scol">median_interval_sec</span>
+                <span class="scol">min_interval_sec</span>
+                <span class="scol">max_interval_sec</span>
+                <span class="scol">user_cnt</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card open">
+          <div class="card-head" onclick="tog(this)">
+            <div class="card-icon ci-teal">⚡</div>
+            <div class="card-titles">
+              <h4>修改后 Trino SQL · 含团长/团员维度</h4>
+              <p>7个CTE · 按日×组×角色分桶 · 校验通过</p>
+            </div>
+            <span class="card-badge cb-ok">✓ 校验通过</span>
+            <span class="chevron">►</span>
+          </div>
+          <div class="card-body">
+            <div class="vblock">
+              <div class="vhead"><span>sql-validator.py V3.1 · 修改后版本</span></div>
+              <div class="vrow"><span class="vtag vt-skip">SKIP</span><span class="vmsg">dim_test_users 未收录 · 跳过</span></div>
+              <div class="vrow" style="background:rgba(0,229,160,.03)"><span class="vtag vt-ok">PASS</span><span class="vmsg">无 ERROR · 允许输出</span></div>
+            </div>
+            <div class="sql-wrap">
+              <div class="sql-tabs">
+                <button class="stab on" onclick="stab(this,'c3-trino')">⚡ Trino SQL（团长+团员版）</button>
+              </div>
+              <div class="spane on" id="pane-c3-trino">
+                <div class="codebox">
+                  <div class="codebox-bar">
+                    <span class="codebox-eng">ENGINE: Trino · 按日×实验分组×用户身份 · 20260526~20260602</span>
+                    <button class="copybtn" onclick="cp('c3t',this)">📋 复制</button>
+                  </div>
+                  <pre><code id="c3t" class="language-sql">WITH
+-- 步骤1a：实验组首屏首次曝光（团长+团员）
+exp_first_screen AS (
+    SELECT
+        dt,
+        CAST(member_id AS VARCHAR)                                          AS member_id,
+        '实验组'                                                             AS exp_group,
+        CASE WHEN COALESCE(JSON_EXTRACT_SCALAR(page_param,'$.groupid'),'')=''
+             THEN '团长' ELSE '团员' END                                     AS user_role,
+        MIN(log_timestamp)                                                   AS first_screen_ts
+    FROM dw.dw_tfc_elmt_eps_ug_di
+    WHERE dt BETWEEN '20260526' AND '20260602'
+      AND p_game_tp='106' AND site_tp='shein' AND game_tp=106 AND page_tp='2'
+      AND event_nm='expose_popup_selectattr'
+      AND JSON_EXTRACT_SCALAR(activity_param,'$.popup_type')='groupbuycountdown_begin'
+      AND JSON_EXTRACT_SCALAR(activity_param,'$.groupbuycountdown') IN ('A','B')
+      AND member_id IS NOT NULL AND member_id > 0
+    GROUP BY dt, CAST(member_id AS VARCHAR),
+             CASE WHEN COALESCE(JSON_EXTRACT_SCALAR(page_param,'$.groupid'),'')=''
+                  THEN '团长' ELSE '团员' END
+),
+-- 步骤1b：对照组首屏首次曝光（团长+团员）
+ctrl_first_screen AS (
+    SELECT
+        dt, CAST(member_id AS VARCHAR) AS member_id, '对照组' AS exp_group,
+        CASE WHEN COALESCE(JSON_EXTRACT_SCALAR(page_param,'$.groupid'),'')=''
+             THEN '团长' ELSE '团员' END AS user_role,
+        MIN(log_timestamp) AS first_screen_ts
+    FROM dw.dw_tfc_elmt_eps_ug_di
+    WHERE dt BETWEEN '20260526' AND '20260602'
+      AND p_game_tp='106' AND site_tp='shein' AND game_tp=106 AND page_tp='2'
+      AND event_nm='expose_popup_selectattr'
+      AND JSON_EXTRACT_SCALAR(activity_param,'$.popup_type')='groupbuyfreeshipping'
+      AND member_id IS NOT NULL AND member_id > 0
+    GROUP BY dt, CAST(member_id AS VARCHAR),
+             CASE WHEN COALESCE(JSON_EXTRACT_SCALAR(page_param,'$.groupid'),'')=''
+                  THEN '团长' ELSE '团员' END
+),
+all_first_screen AS (
+    SELECT dt,member_id,exp_group,user_role,first_screen_ts FROM exp_first_screen
+    UNION ALL
+    SELECT dt,member_id,exp_group,user_role,first_screen_ts FROM ctrl_first_screen
+),
+-- 步骤2：立即购曝光明细（含 user_role 供角色配对）
+orderdrawer_detail AS (
+    SELECT
+        dt, CAST(member_id AS VARCHAR) AS member_id,
+        CASE WHEN COALESCE(JSON_EXTRACT_SCALAR(page_param,'$.groupid'),'')=''
+             THEN '团长' ELSE '团员' END AS user_role,
+        log_timestamp AS orderdrawer_ts
+    FROM dw.dw_tfc_elmt_eps_ug_di
+    WHERE dt BETWEEN '20260526' AND '20260602'
+      AND p_game_tp='106' AND site_tp='shein' AND game_tp=106 AND page_tp='2'
+      AND event_nm='expose_popup_selectattr'
+      AND JSON_EXTRACT_SCALAR(activity_param,'$.popup_type')='orderdrawer'
+      AND member_id IS NOT NULL AND member_id > 0
+),
+-- 步骤3：计算时间间隔，同角色配对（防止团长首屏匹配到团员立即购）
+user_interval AS (
+    SELECT f.dt, f.exp_group, f.user_role, f.member_id,
+           CAST(MIN(o.orderdrawer_ts)-f.first_screen_ts AS DOUBLE)/1000.0 AS interval_sec
+    FROM all_first_screen f
+    INNER JOIN orderdrawer_detail o
+        ON f.dt=o.dt AND f.member_id=o.member_id
+        AND f.user_role=o.user_role                -- ← 同角色配对
+        AND o.orderdrawer_ts > f.first_screen_ts
+    GROUP BY f.dt,f.exp_group,f.user_role,f.member_id,f.first_screen_ts
+),
+-- 步骤4：NTILE(10) 按日×组×角色各自独立分桶
+user_ntile AS (
+    SELECT dt,exp_group,user_role,member_id,interval_sec,
+           NTILE(10) OVER(PARTITION BY dt,exp_group,user_role  -- ← 加入user_role
+                          ORDER BY interval_sec ASC) AS ntile_bucket
+    FROM user_interval
+)
+SELECT
+    dt, exp_group, user_role,
+    CONCAT(CAST(ntile_bucket*10 AS VARCHAR),'分位')         AS percentile_group,
+    ROUND(AVG(interval_sec),2)                              AS avg_interval_sec,
+    ROUND(APPROX_PERCENTILE(interval_sec,0.5),2)            AS median_interval_sec,
+    ROUND(MIN(interval_sec),2)                              AS min_interval_sec,
+    ROUND(MAX(interval_sec),2)                              AS max_interval_sec,
+    COUNT(DISTINCT member_id)                               AS user_cnt
+FROM user_ntile
+GROUP BY dt,exp_group,user_role,ntile_bucket
+ORDER BY dt,exp_group,user_role,ntile_bucket;</code></pre>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════
+       TURN 4: 跨日汇总
+  ═══════════════════════════════════ -->
+  <div class="divider fi">
+    <div class="divider-line"></div>
+    <div class="divider-label">// 需求四 · 去掉日期维度，跨日汇总</div>
+    <div class="divider-line"></div>
+  </div>
+
+  <div class="turn fi">
+    <div class="msg-user">
+      <div class="av av-u">我</div>
+      <div class="bubble-u">
+        现在在原来需求不变的情况下，我想<strong>根据日期汇总数据</strong>，汇总逻辑是按照<strong>用户+天去计算</strong>，输出字段：实验组别、用户身份、分位段、间隔时长平均值、中位数、最小值、最大值、用户数（<strong>用户+天去重</strong>）
+      </div>
+    </div>
+    <div class="msg-ai" style="margin-top:14px">
+      <div class="av av-ai">AI</div>
+      <div class="ai-body">
+        <div class="ai-header">
+          <span class="ai-name">Claude · 迭代修改</span>
+          <span class="ai-step-tag">跨日汇总版</span>
+        </div>
+        <div class="think-strip">
+          <div class="think-dots"><span></span><span></span><span></span></div>
+          需求明确 · 改动点清晰 · 3处精准修改 · 步骤1~3不变
+        </div>
+        <div class="card open">
+          <div class="card-head" onclick="tog(this)">
+            <div class="card-icon ci-amb">🔧</div>
+            <div class="card-titles">
+              <h4>改动分析 · 3处精准修改</h4>
+              <p>NTILE去掉dt · 输出去掉dt · user_cnt改为用户+天去重</p>
+            </div>
+            <span class="card-badge cb-info">精确改动</span>
+            <span class="chevron">►</span>
+          </div>
+          <div class="card-body">
+            <div class="diff-strip">
+              <div class="diff-title">改动清单（步骤1~3完全不变）</div>
+              <div class="diff-row">
+                <span class="diff-loc">步骤4 NTILE</span>
+                <span class="diff-from">PARTITION BY dt,exp_group,user_role</span>
+                <span class="diff-arr">→</span>
+                <span class="diff-to">PARTITION BY exp_group,user_role（去掉dt，跨日整体分桶）</span>
+              </div>
+              <div class="diff-row">
+                <span class="diff-loc">步骤5 GROUP BY</span>
+                <span class="diff-from">dt,exp_group,user_role,ntile_bucket</span>
+                <span class="diff-arr">→</span>
+                <span class="diff-to">exp_group,user_role,ntile_bucket（输出不含日期）</span>
+              </div>
+              <div class="diff-row">
+                <span class="diff-loc">user_cnt</span>
+                <span class="diff-from">COUNT(DISTINCT member_id)</span>
+                <span class="diff-arr">→</span>
+                <span class="diff-to">COUNT(DISTINCT CONCAT(dt,'_',member_id))（用户+天去重）</span>
+              </div>
+            </div>
+            <div class="prose" style="margin-top:12px">
+              <strong>💡 用户+天去重的含义</strong>：同一用户若在 5月26日和5月27日各完成一次首屏→立即购路径，计为 <strong style="color:var(--accent)">2个数据点，user_cnt=2</strong>，分位段统计量也基于这2条间隔记录分别参与计算，符合业务语义。
+            </div>
+            <div style="margin-top:12px">
+              <div style="font-family:var(--mono);font-size:9.5px;color:var(--mist);letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px">最终输出字段（去掉日期）</div>
+              <div class="schema-cols">
+                <span class="scol key">exp_group</span>
+                <span class="scol key">user_role</span>
+                <span class="scol">percentile_group</span>
+                <span class="scol">avg_interval_sec</span>
+                <span class="scol">median_interval_sec</span>
+                <span class="scol">min_interval_sec</span>
+                <span class="scol">max_interval_sec</span>
+                <span class="scol new">user_cnt（用户+天）</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 最终SQL -->
+        <div class="card open">
+          <div class="card-head" onclick="tog(this)">
+            <div class="card-icon ci-teal">⚡</div>
+            <div class="card-titles">
+              <h4>最终版 Trino SQL · 跨日汇总</h4>
+              <p>7个CTE · 跨日整体分桶 · 用户+天去重 · 校验通过</p>
+            </div>
+            <span class="card-badge cb-ok">✓ 最终版本</span>
+            <span class="chevron">►</span>
+          </div>
+          <div class="card-body">
+            <div class="vblock">
+              <div class="vhead"><span>sql-validator.py V3.1 · 最终版 · /tmp/temp-sql-converted.sql</span></div>
+              <div class="vrow"><span class="vtag vt-skip">SKIP</span><span class="vmsg">dim_test_users 未收录 · 跳过</span></div>
+              <div class="vrow" style="background:rgba(0,229,160,.03)"><span class="vtag vt-ok">PASS</span><span class="vmsg">无 ERROR · 允许输出</span></div>
+            </div>
+            <div class="sql-wrap">
+              <div class="sql-tabs">
+                <button class="stab on" onclick="stab(this,'c4-final')">⚡ Trino SQL（最终版 · 跨日汇总）</button>
+              </div>
+              <div class="spane on" id="pane-c4-final">
+                <div class="codebox">
+                  <div class="codebox-bar">
+                    <span class="codebox-eng">ENGINE: Trino · 跨日汇总 · user+天去重 · 20260526~20260602</span>
+                    <button class="copybtn" onclick="cp('c4f',this)">📋 复制</button>
+                  </div>
+                  <pre><code id="c4f" class="language-sql">WITH
+-- 步骤1a：实验组首屏首次曝光（按 dt+user+role 粒度）
+exp_first_screen AS (
+    SELECT
+        dt,
+        CAST(member_id AS VARCHAR)                                          AS member_id,
+        '实验组'                                                             AS exp_group,
+        CASE WHEN COALESCE(JSON_EXTRACT_SCALAR(page_param,'$.groupid'),'')=''
+             THEN '团长' ELSE '团员' END                                     AS user_role,
+        MIN(log_timestamp)                                                   AS first_screen_ts
+    FROM dw.dw_tfc_elmt_eps_ug_di
+    WHERE dt BETWEEN '20260526' AND '20260602'
+      AND p_game_tp='106' AND site_tp='shein' AND game_tp=106 AND page_tp='2'
+      AND event_nm='expose_popup_selectattr'
+      AND JSON_EXTRACT_SCALAR(activity_param,'$.popup_type')='groupbuycountdown_begin'
+      AND JSON_EXTRACT_SCALAR(activity_param,'$.groupbuycountdown') IN ('A','B')
+      AND member_id IS NOT NULL AND member_id > 0
+    GROUP BY dt, CAST(member_id AS VARCHAR),
+             CASE WHEN COALESCE(JSON_EXTRACT_SCALAR(page_param,'$.groupid'),'')=''
+                  THEN '团长' ELSE '团员' END
+),
+-- 步骤1b：对照组首屏首次曝光（按 dt+user+role 粒度）
+ctrl_first_screen AS (
+    SELECT
+        dt, CAST(member_id AS VARCHAR) AS member_id, '对照组' AS exp_group,
+        CASE WHEN COALESCE(JSON_EXTRACT_SCALAR(page_param,'$.groupid'),'')=''
+             THEN '团长' ELSE '团员' END AS user_role,
+        MIN(log_timestamp) AS first_screen_ts
+    FROM dw.dw_tfc_elmt_eps_ug_di
+    WHERE dt BETWEEN '20260526' AND '20260602'
+      AND p_game_tp='106' AND site_tp='shein' AND game_tp=106 AND page_tp='2'
+      AND event_nm='expose_popup_selectattr'
+      AND JSON_EXTRACT_SCALAR(activity_param,'$.popup_type')='groupbuyfreeshipping'
+      AND member_id IS NOT NULL AND member_id > 0
+    GROUP BY dt, CAST(member_id AS VARCHAR),
+             CASE WHEN COALESCE(JSON_EXTRACT_SCALAR(page_param,'$.groupid'),'')=''
+                  THEN '团长' ELSE '团员' END
+),
+-- 合并两组
+all_first_screen AS (
+    SELECT dt,member_id,exp_group,user_role,first_screen_ts FROM exp_first_screen
+    UNION ALL
+    SELECT dt,member_id,exp_group,user_role,first_screen_ts FROM ctrl_first_screen
+),
+-- 步骤2：立即购曝光明细（含 user_role 供角色配对）
+orderdrawer_detail AS (
+    SELECT
+        dt, CAST(member_id AS VARCHAR) AS member_id,
+        CASE WHEN COALESCE(JSON_EXTRACT_SCALAR(page_param,'$.groupid'),'')=''
+             THEN '团长' ELSE '团员' END AS user_role,
+        log_timestamp AS orderdrawer_ts
+    FROM dw.dw_tfc_elmt_eps_ug_di
+    WHERE dt BETWEEN '20260526' AND '20260602'
+      AND p_game_tp='106' AND site_tp='shein' AND game_tp=106 AND page_tp='2'
+      AND event_nm='expose_popup_selectattr'
+      AND JSON_EXTRACT_SCALAR(activity_param,'$.popup_type')='orderdrawer'
+      AND member_id IS NOT NULL AND member_id > 0
+),
+-- 步骤3：计算当天时间间隔（秒）· 粒度：dt×exp_group×user_role×member_id
+user_interval AS (
+    SELECT f.dt, f.exp_group, f.user_role, f.member_id,
+           CAST(MIN(o.orderdrawer_ts)-f.first_screen_ts AS DOUBLE)/1000.0 AS interval_sec
+    FROM all_first_screen f
+    INNER JOIN orderdrawer_detail o
+        ON f.dt=o.dt AND f.member_id=o.member_id
+        AND f.user_role=o.user_role
+        AND o.orderdrawer_ts > f.first_screen_ts
+    GROUP BY f.dt,f.exp_group,f.user_role,f.member_id,f.first_screen_ts
+),
+-- 步骤4：跨日整体分桶（PARTITION 去掉dt，汇总后按组×角色独立分桶）
+user_ntile AS (
+    SELECT dt, exp_group, user_role, member_id, interval_sec,
+           NTILE(10) OVER(
+               PARTITION BY exp_group, user_role  -- ← 去掉dt，跨日整体排序
+               ORDER BY interval_sec ASC
+           ) AS ntile_bucket
+    FROM user_interval
+)
+-- 步骤5：跨日汇总输出（无dt维度）
+SELECT
+    exp_group,
+    user_role,
+    CONCAT(CAST(ntile_bucket*10 AS VARCHAR),'分位')          AS percentile_group,
+    ROUND(AVG(interval_sec),2)                               AS avg_interval_sec,
+    ROUND(APPROX_PERCENTILE(interval_sec,0.5),2)             AS median_interval_sec,
+    ROUND(MIN(interval_sec),2)                               AS min_interval_sec,
+    ROUND(MAX(interval_sec),2)                               AS max_interval_sec,
+    COUNT(DISTINCT CONCAT(dt,'_',member_id))                 AS user_cnt  -- 用户+天去重
+FROM user_ntile
+GROUP BY exp_group, user_role, ntile_bucket
+ORDER BY exp_group, user_role, ntile_bucket;</code></pre>
+                </div>
+              </div>
+            </div>
+
+            <!-- 结果预览 -->
+            <div class="result-preview" style="margin-top:14px">
+              <div class="rp-head">📊 输出结果示例（示意数据）</div>
+              <table class="rp-table">
+                <thead>
+                  <tr>
+                    <th>exp_group</th><th>user_role</th><th>percentile_group</th>
+                    <th>avg_interval_sec</th><th>median_interval_sec</th>
+                    <th>min_interval_sec</th><th>max_interval_sec</th><th>user_cnt</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr><td>对照组</td><td>团长</td><td>10分位</td><td>3.21</td><td>3.05</td><td>0.42</td><td>5.88</td><td>1,243</td></tr>
+                  <tr><td>对照组</td><td>团长</td><td>20分位</td><td>8.67</td><td>8.41</td><td>5.90</td><td>11.33</td><td>1,244</td></tr>
+                  <tr><td>对照组</td><td>团员</td><td>10分位</td><td>4.15</td><td>3.98</td><td>0.61</td><td>6.72</td><td>987</td></tr>
+                  <tr><td>实验组</td><td>团长</td><td>10分位</td><td>2.87</td><td>2.71</td><td>0.38</td><td>4.99</td><td>1,389</td></tr>
+                  <tr><td>实验组</td><td>团长</td><td>20分位</td><td>7.34</td><td>7.12</td><td>5.01</td><td>9.68</td><td>1,390</td></tr>
+                  <tr><td>实验组</td><td>团员</td><td>10分位</td><td>3.62</td><td>3.44</td><td>0.55</td><td>5.81</td><td>1,102</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  </div><!-- end chat -->
+
+  <!-- ── SUMMARY ── -->
+  <div class="divider fi">
+    <div class="divider-line"></div>
+    <div class="divider-label">// Skill 核心能力总结</div>
+    <div class="divider-line"></div>
+  </div>
+
+  <div class="sumgrid fi">
+    <div class="sumcard sc-teal">
+      <div class="sumcard-icon">🎯</div>
+      <div class="sumcard-title">口径自动驱动</div>
+      <div class="sumcard-desc">所有指标严格从 metric-definitions.md 查找，团长识别、时间戳单位、page_tp含义均来自数据字典，不猜测不编造</div>
+    </div>
+    <div class="sumcard sc-blue">
+      <div class="sumcard-icon">🔍</div>
+      <div class="sumcard-title">选表强制验证</div>
+      <div class="sumcard-desc">用增专属(_ug_) + 天级(_di) 优于通用小时级表，grep 搜索 data-dictionary.md 后才落笔，在 SQL 头部注释写明选表理由</div>
+    </div>
+    <div class="sumcard sc-amb">
+      <div class="sumcard-icon">✅</div>
+      <div class="sumcard-title">自动校验</div>
+      <div class="sumcard-desc">每次生成后自动执行 sql-validator.py，ERROR 强制修正，WARN 查字典再决定是否跳过，全程 0 ERROR 才输出</div>
+    </div>
+    <div class="sumcard sc-rose">
+      <div class="sumcard-icon">⚡</div>
+      <div class="sumcard-title">方言转换</div>
+      <div class="sumcard-desc">一键 Hive→Trino，逐条检查方言转换规则，STRING→VARCHAR / GET_JSON_OBJECT→JSON_EXTRACT_SCALAR / PERCENTILE_APPROX→APPROX_PERCENTILE，转换后再次校验</div>
+    </div>
+    <div class="sumcard sc-teal">
+      <div class="sumcard-icon">♻️</div>
+      <div class="sumcard-title">自然语言迭代</div>
+      <div class="sumcard-desc">「增加用户身份」「改为跨日汇总」两句话，AI 自动识别 6处/3处 精准改动点，保留未改部分，不重写整个 SQL</div>
+    </div>
+    <div class="sumcard sc-blue">
+      <div class="sumcard-icon">🏢</div>
+      <div class="sumcard-title">多业务线隔离</div>
+      <div class="sumcard-desc">裂变拉新 / 新客转化 / 商品上架各自独立数据字典和模板，通过 business_lines.yaml 统一注册，互不干扰，新增业务线零代码成本</div>
+    </div>
+  </div>
+
+</div>
+
+<footer>
+  <div class="foot-brand">SHEIN · <em>Write-SQL Skill</em> · 裂变拉新业务线</div>
+  <div class="foot-meta">演示时间: 2026-06-04<br>数据范围: 20260526 ~ 20260602 · Trino SQL</div>
+</footer>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('pre code').forEach(el => hljs.highlightElement(el));
+  });
+
+  function tog(head) {
+    head.closest('.card').classList.toggle('open');
+  }
+
+  function stab(btn, id) {
+    const wrap = btn.closest('.card-body') || btn.closest('.sql-wrap');
+    wrap.querySelectorAll('.stab').forEach(b => b.classList.remove('on'));
+    btn.classList.add('on');
+    wrap.querySelectorAll('.spane').forEach(p => p.classList.remove('on'));
+    document.getElementById('pane-' + id).classList.add('on');
+  }
+
+  function cp(id, btn) {
+    const txt = document.getElementById(id).textContent;
+    navigator.clipboard.writeText(txt).then(() => {
+      btn.classList.add('ok');
+      btn.innerHTML = '✓ 已复制';
+      setTimeout(() => { btn.classList.remove('ok'); btn.innerHTML = '📋 复制'; }, 2000);
+    });
+  }
+
+  const io = new IntersectionObserver(entries => {
+    entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('in'); });
+  }, { threshold: 0.05 });
+  document.querySelectorAll('.fi').forEach(el => io.observe(el));
+</script>
+
+</body>
+</html>
